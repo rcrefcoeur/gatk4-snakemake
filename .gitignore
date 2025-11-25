@@ -1,0 +1,15 @@
+# conda envs and temp
+.env/
+.venv/
+results/
+work/
+nextflow_work_dir/
+*.pyc
+__pycache__/
+*.swp
+# large FASTQ / BAM - do NOT commit
+data/
+fastq/
+bam/
+# snakemake temp
+.snakemake/
