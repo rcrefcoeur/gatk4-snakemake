@@ -11,5 +11,18 @@ __pycache__/
 data/
 fastq/
 bam/
+reference/
+fastq/
+*.bam
+*.bai
+*.sam
+*.fq
+*.fastq
+*.fastq.gz
+*.dict
+*.fai
+*.vcf
+*.vcf.gz
+*.tbi
 # snakemake temp
 .snakemake/

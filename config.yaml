@@ -1,0 +1,8 @@
+# config.yaml
+samples:
+  sample1: ["data/sample1_R1.fastq.gz", "data/sample1_R2.fastq.gz"]
+reference: "/path/to/ref.fa"
+snpeff_db: "athalianaTair10"
+outdir: "results"
+platform: "illumina"
+platform_model: "nextseq"

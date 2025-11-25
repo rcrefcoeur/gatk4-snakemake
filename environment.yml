@@ -1,0 +1,12 @@
+# environment.yml  (top-level env to run snakemake)
+name: snakemake-run
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - snakemake
+  - mamba
+  - pip
+  - git
