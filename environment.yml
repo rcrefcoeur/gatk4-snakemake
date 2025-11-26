@@ -1,12 +1,11 @@
-# environment.yml  (top-level env to run snakemake)
 name: snakemake-run
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - python=3.10
-  - snakemake
-  - mamba
+  - python=3.11        # compatible with Snakemake 8.x
+  - snakemake=8.11.2   # stable version with --use-conda support
+  - mamba              # optional, speeds up solving
   - pip
   - git

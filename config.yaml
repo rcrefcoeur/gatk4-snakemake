@@ -1,8 +1,9 @@
 # config.yaml
-samples:
-  sample1: ["data/sample1_R1.fastq.gz", "data/sample1_R2.fastq.gz"]
-reference: "/path/to/ref.fa"
-snpeff_db: "athalianaTair10"
+reference_url: "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.15.fa.gz"
+reference_dir: "reference"
+reference_fa: "reference/Homo_sapiens.GRCh38.dna.chromosome.15.fa"
+threads: 6
+platform: "ILLUMINA"
+samples_tsv: "samples.tsv"
 outdir: "results"
-platform: "illumina"
-platform_model: "nextseq"
+

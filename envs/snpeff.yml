@@ -1,10 +1,9 @@
-name: bwa-env
+name: snpeff-env
 channels:
   - bioconda
   - conda-forge
   - defaults
 dependencies:
   - python=3.11
-  - bwa=0.7.17
-  - samtools=1.17
-  - numpy=1.25
+  - snpeff=5.1.0
+  - default-jre=17

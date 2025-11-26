@@ -1,15 +1,23 @@
-# Snakefile (top-level)
-import os
+import pandas as pd
+
 configfile: "config.yaml"
 
-# default target
+# Include only rules needed for downloads + reference preparation
+include: "rules/download_fastq.smk"
+include: "rules/reference.smk"
+
+# Load samples table
+samples_df = pd.read_csv(config["samples_tsv"], sep="\t")
+SAMPLES = samples_df["sample"].tolist()
+
+# Default target: FASTQ + chr15 reference
 rule all:
     input:
-        expand("{outdir}/{sample}.vcf.gz", outdir=config["outdir"], sample=list(config["samples"].keys()))
+        # FASTQ files
+        expand("fastq/{sample}_1.fastq.gz", sample=SAMPLES),
+        expand("fastq/{sample}_2.fastq.gz", sample=SAMPLES),
 
-# include modular rules
-include: "rules/align.smk"
-include: "rules/markdup.smk"
-include: "rules/bqsr.smk"
-include: "rules/call_variants.smk"
-include: "rules/snpeff.smk"
+        # chr15-only reference (adjust to match your reference.smk outputs)
+        "reference/chr15.fa",
+        "reference/chr15.fa.fai",
+        "reference/chr15.dict"

@@ -24,5 +24,9 @@ fastq/
 *.vcf
 *.vcf.gz
 *.tbi
+SRR2584863/
+SRR2584866/
+SRR2584868/
+*.sra
 # snakemake temp
 .snakemake/
