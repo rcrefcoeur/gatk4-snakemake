@@ -99,6 +99,13 @@ DEDUP_METRICS = expand(
     sample=SAMPLES
 )
 
+# ------------------------------------------------------------------
+# Build BAM Index
+# ------------------------------------------------------------------
+
+DEDUP_BAI = temp(
+    expand("results/dedup/{sample}.dedup.bai", sample=SAMPLES)
+)
 
 # ------------------------------------------------------------------
 # Include rules
@@ -110,6 +117,7 @@ include: "rules/align.smk"
 include: "rules/sort_bam.smk"
 include: "rules/metrics.smk"
 include: "rules/mark_duplicates.smk"
+include: "rules/index_bam.smk"
 
 
 # ------------------------------------------------------------------
@@ -128,4 +136,5 @@ rule all:
         SORTED_BAMS,
         METRICS,
         DEDUP_BAMS,
-        DEDUP_METRICS
+        DEDUP_METRICS,
+        DEDUP_BAI
