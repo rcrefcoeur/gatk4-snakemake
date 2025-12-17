@@ -71,15 +71,23 @@ rule faidx:
             shutil.copy2(src_fai, dst_fai)
 
 rule bwa_index:
-    """Index reference with BWA."""
+    """
+    Build BWA index on the canonical reference FASTA.
+    """
     input:
-        fa = REF_FA
+        fa = CANON_FA
     output:
-        bwt = REF_FA + ".bwt"  # representative BWA output
+        amb = CANON_FA + ".amb",
+        ann = CANON_FA + ".ann",
+        bwt = CANON_FA + ".bwt",
+        pac = CANON_FA + ".pac",
+        sa  = CANON_FA + ".sa"
     threads: 6
     conda: CONDA_ENV
     shell:
-        "bwa index {input.fa}"
+        """
+        bwa index {input.fa}
+        """
 
 rule dict:
     """Create GATK sequence dictionary and canonical dict."""

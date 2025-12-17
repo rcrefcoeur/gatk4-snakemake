@@ -64,6 +64,8 @@ reference_canonical:
 
 reference_dir: "reference"
 
+bam_dir: "results/bam"
+
 # Pipeline settings
 threads: 6
 platform: "ILLUMINA"
