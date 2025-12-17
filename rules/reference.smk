@@ -1,23 +1,27 @@
-# rules/reference.smk
 import os
 from pathlib import Path
 
 REF_DIR = config["reference_dir"]
-REF_FA = config["reference_fa"]         # e.g. reference/Homo_sapiens.GRCh38.dna.chromosome.15.fa
-REF_URL = config["reference_url"]
 
-# canonical names expected by rule all
-CANON_FA = os.path.join(REF_DIR, "chr15.fa")
+# pick the first active reference from the config
+REF_FILE = config["references"][0].replace(".gz", "")
+REF_URL = config["reference_base_url"] + config["references"][0]
+
+# pick canonical name from config if defined, else default to REF_FILE
+CANON_FILE = config.get("reference_canonical", [REF_FILE])[0]
+
+REF_FA = os.path.join(REF_DIR, REF_FILE)
+CANON_FA = os.path.join(REF_DIR, CANON_FILE)
 CANON_FAI = CANON_FA + ".fai"
 CANON_DICT = CANON_FA.replace(".fa", ".dict")
 
-# Helper: ensure reference dir exists
 def ensure_ref_dir():
     Path(REF_DIR).mkdir(parents=True, exist_ok=True)
 
 CONDA_ENV = "../envs/reference.yml"
 
-rule download_chr15:
+rule download_reference:
+    """Download reference fasta and gunzip."""
     output:
         fa = REF_FA
     threads: 1
@@ -26,13 +30,12 @@ rule download_chr15:
         r"""
         set -euo pipefail
         mkdir -p {REF_DIR}
-        # download to REF_FA.gz (if remote) then gunzip -> REF_FA
         wget -c -O {output.fa}.gz {REF_URL}
         gunzip -f {output.fa}.gz
         """
 
-# create samtools faidx for REF_FA and also create canonical names (fa + fai)
 rule faidx:
+    """Index reference with samtools and create canonical names."""
     input:
         fa = REF_FA
     output:
@@ -45,56 +48,58 @@ rule faidx:
         ensure_ref_dir()
         shell("samtools faidx {input.fa}")
 
-        # Create canonical fasta (symlink if possible, else copy)
-        src_fa = os.path.abspath(str(input.fa))
-        dest_fa = os.path.abspath(str(output.canon_fa))
+        # canonical fasta
+        src_fa = os.path.abspath(input.fa)
+        dst_fa = os.path.abspath(output.canon_fa)
         try:
-            if os.path.islink(dest_fa) or os.path.exists(dest_fa):
-                os.remove(dest_fa)
-            os.symlink(src_fa, dest_fa)
+            if os.path.exists(dst_fa):
+                os.remove(dst_fa)
+            os.symlink(src_fa, dst_fa)
         except Exception:
             import shutil
-            shutil.copy2(src_fa, dest_fa)
+            shutil.copy2(src_fa, dst_fa)
 
-        # Create canonical fai (symlink to the produced .fai)
-        src_fai = os.path.abspath(str(input.fa)) + ".fai"
-        dest_fai = os.path.abspath(str(output.canon_fai))
+        # canonical fai
+        src_fai = src_fa + ".fai"
+        dst_fai = os.path.abspath(output.canon_fai)
         try:
-            if os.path.islink(dest_fai) or os.path.exists(dest_fai):
-                os.remove(dest_fai)
-            os.symlink(src_fai, dest_fai)
+            if os.path.exists(dst_fai):
+                os.remove(dst_fai)
+            os.symlink(src_fai, dst_fai)
         except Exception:
             import shutil
-            shutil.copy2(src_fai, dest_fai)
+            shutil.copy2(src_fai, dst_fai)
 
-# create bwa index files (creates many files; use one representative output)
 rule bwa_index:
+    """Index reference with BWA."""
     input:
         fa = REF_FA
     output:
-        bwt = REF_FA + ".bwt"
+        bwt = REF_FA + ".bwt"  # representative BWA output
     threads: 6
     conda: CONDA_ENV
     shell:
         "bwa index {input.fa}"
 
-# create sequence dictionary for REF_FA and also for canonical name if needed
 rule dict:
+    """Create GATK sequence dictionary and canonical dict."""
     input:
         fa = REF_FA
     output:
         dict = REF_FA.replace(".fa", ".dict"),
         canon_dict = CANON_DICT
     threads: 1
-    conda: "../envs/reference.yml"
+    conda: CONDA_ENV
     run:
         shell("gatk CreateSequenceDictionary -R {input.fa} -O {output.dict}")
-        # ensure a canonical dict for chr15.fa name too
-        if os.path.abspath(str(input.fa)) != os.path.abspath(CANON_FA):
-            try:
-                if os.path.exists(output.canon_dict):
-                    os.remove(output.canon_dict)
-                os.symlink(os.path.abspath(output.dict), output.canon_dict)
-            except Exception:
-                import shutil
-                shutil.copy2(os.path.abspath(output.dict), output.canon_dict)
+
+        # canonical dict
+        src_dict = os.path.abspath(output.dict)
+        dst_dict = os.path.abspath(output.canon_dict)
+        try:
+            if os.path.exists(dst_dict):
+                os.remove(dst_dict)
+            os.symlink(src_dict, dst_dict)
+        except Exception:
+            import shutil
+            shutil.copy2(src_dict, dst_dict)

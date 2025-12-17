@@ -1,9 +1,75 @@
 # config.yaml
-reference_url: "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.15.fa.gz"
+
+# Reference settings
+# Base URL for all references
+reference_base_url: "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/"
+
+# Reference URLs (only one active by default)
+references:
+  # - "Homo_sapiens.GRCh38.dna.chromosome.1.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.2.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.3.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.4.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.5.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.6.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.7.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.8.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.9.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.10.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.11.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.12.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.14.fa.gz"
+   - "Homo_sapiens.GRCh38.dna.chromosome.15.fa.gz"   # active
+  # - "Homo_sapiens.GRCh38.dna.chromosome.16.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.17.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.18.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.19.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.21.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.22.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.X.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.Y.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz"  # mitochondrial genome
+  # - "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"  # full genome
+
+# Canonical reference names (commented out except active)
+reference_canonical:
+  # - "chr_1.fa"
+  # - "chr_2.fa"
+  # - "chr_3.fa"
+  # - "chr_4.fa"
+  # - "chr_5.fa"
+  # - "chr_6.fa"
+  # - "chr_7.fa"
+  # - "chr_8.fa"
+  # - "chr_9.fa"
+  # - "chr_10.fa"
+  # - "chr_11.fa"
+  # - "chr_12.fa"
+  # - "chr_13.fa"
+  # - "chr_14.fa"
+   - "chr_15.fa"   # active
+  # - "chr_16.fa"
+  # - "chr_17.fa"
+  # - "chr_18.fa"
+  # - "chr_19.fa"
+  # - "chr_20.fa"
+  # - "chr_21.fa"
+  # - "chr_22.fa"
+  # - "chr_X.fa"
+  # - "chr_Y.fa"
+  # - "chr_MT.fa"
+  # - "chr_primary.fa"
+
 reference_dir: "reference"
-reference_fa: "reference/Homo_sapiens.GRCh38.dna.chromosome.15.fa"
+
+# Pipeline settings
 threads: 6
 platform: "ILLUMINA"
 samples_tsv: "samples.tsv"
 outdir: "results"
 
+# FASTQ / download settings (new for Option B)
+fastq_dir: "fastq"                  # directory where FASTQs will be stored
+accessions_file: "accessions.txt"   # file listing SRR accessions to download

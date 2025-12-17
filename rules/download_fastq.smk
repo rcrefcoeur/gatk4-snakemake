@@ -1,17 +1,21 @@
 # rules/download_fastq.smk
 
-ACCESSIONS_FILE = config.get("accessions_file", "accessions.txt")
-OUTDIR = config.get("fastq_dir", "fastq")
-OUT_SAMPLES = config.get("samples_tsv", "samples.tsv")
-
 rule download_fastq:
     input:
-        accessions = ACCESSIONS_FILE
+        accessions = config["accessions_file"]
     output:
-        samples = OUT_SAMPLES
+        r1 = expand("{fastq_dir}/{acc}_1.fastq.gz", fastq_dir=config["fastq_dir"], acc=[l.strip() for l in open(config["accessions_file"]) if l.strip()]),
+        r2 = expand("{fastq_dir}/{acc}_2.fastq.gz", fastq_dir=config["fastq_dir"], acc=[l.strip() for l in open(config["accessions_file"]) if l.strip()]),
+        samples = config["samples_tsv"]
     threads: 4
-    conda: "../envs/reference.yml"  # or a minimal env with curl, sra-tools, gzip
+    conda: "../envs/sra-tools.yml"
+    log:
+        "../logs/download_fastq.log"
     shell:
-        """
-        bash scripts/download_fastq.sh {input.accessions} {OUTDIR} {output.samples}
+        r"""
+        bash scripts/download_fastq.sh \
+            {input.accessions} \
+            {config[fastq_dir]} \
+            {output.samples} \
+            > {log} 2>&1
         """

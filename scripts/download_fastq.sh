@@ -8,6 +8,10 @@ ACCESSIONS_FILE=${1:-accessions.txt}
 OUTDIR=${2:-fastq}
 OUT_SAMPLES=${3:-samples.tsv}
 
+ACCESSIONS_FILE=$(realpath "$ACCESSIONS_FILE")
+OUTDIR=$(realpath "$OUTDIR")
+OUT_SAMPLES=$(realpath "$OUT_SAMPLES")
+
 mkdir -p "$OUTDIR"
 rm -f "$OUT_SAMPLES"
 echo -e "sample\tr1\tr2" > "$OUT_SAMPLES"

@@ -30,3 +30,6 @@ SRR2584868/
 *.sra
 # snakemake temp
 .snakemake/
+samples.tsv
+print_tree.py
+workflow_dag.png
