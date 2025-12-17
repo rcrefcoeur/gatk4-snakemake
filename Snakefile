@@ -87,6 +87,20 @@ METRICS = expand(
 )
     
 # ------------------------------------------------------------------
+# Deduplicated BAMs and metrics
+# ------------------------------------------------------------------
+DEDUP_DIR = config.get("dedup_dir", "results/dedup")
+DEDUP_BAMS = expand(
+    os.path.join(DEDUP_DIR, "{sample}.dedup.bam"),
+    sample=SAMPLES
+)
+DEDUP_METRICS = expand(
+    os.path.join(DEDUP_DIR, "{sample}.metrics.txt"),
+    sample=SAMPLES
+)
+
+
+# ------------------------------------------------------------------
 # Include rules
 # ------------------------------------------------------------------
 
@@ -95,6 +109,7 @@ include: "rules/reference.smk"
 include: "rules/align.smk"
 include: "rules/sort_bam.smk"
 include: "rules/metrics.smk"
+include: "rules/mark_duplicates.smk"
 
 
 # ------------------------------------------------------------------
@@ -111,4 +126,6 @@ rule all:
         REF_FAIDX,
         REF_DICT,
         SORTED_BAMS,
-        METRICS
+        METRICS,
+        DEDUP_BAMS,
+        DEDUP_METRICS

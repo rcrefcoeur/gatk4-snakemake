@@ -65,6 +65,7 @@ reference_canonical:
 reference_dir: "reference"
 
 bam_dir: "results/bam"
+dedup_dir: "results/dedup"
 
 # Pipeline settings
 threads: 6
