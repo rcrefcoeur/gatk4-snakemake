@@ -1,8 +1,9 @@
-name: picard
+name: picard-env
 channels:
   - bioconda
   - conda-forge
   - defaults
 dependencies:
-  - picard=2.26.10
-  - openjdk=11
+  - picard
+  - samtools
+  - r-base

@@ -76,6 +76,15 @@ SORTED_BAMS = expand(
     bam_dir=config["bam_dir"],
     sample=SAMPLES
 )
+
+# ------------------------------------------------------------------
+# Sorted BAMS (from metrics.smk)
+# -----------------------------------------------------------------
+
+METRICS = expand(
+    "results/metrics/{sample}.alignment_metrics.txt",
+    sample=SAMPLES
+)
     
 # ------------------------------------------------------------------
 # Include rules
@@ -85,6 +94,7 @@ include: "rules/download_fastq.smk"
 include: "rules/reference.smk"
 include: "rules/align.smk"
 include: "rules/sort_bam.smk"
+include: "rules/metrics.smk"
 
 
 # ------------------------------------------------------------------
@@ -100,4 +110,5 @@ rule all:
         CANON_FA,
         REF_FAIDX,
         REF_DICT,
-        SORTED_BAMS
+        SORTED_BAMS,
+        METRICS
