@@ -139,6 +139,16 @@ FILTERED_SNP_VCF_IDXS = [v + ".idx" for v in FILTERED_SNP_VCFS]
 
 
 # ------------------------------------------------------------------
+# Step 7 — Filter INDELs (hard filters; PASS retained for later extraction)
+# ------------------------------------------------------------------
+FILTERED_INDEL_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.filtered_indels.vcf"),
+    sample=SAMPLES,
+)
+FILTERED_INDEL_VCF_IDXS = [v + ".idx" for v in FILTERED_INDEL_VCFS]
+
+
+# ------------------------------------------------------------------
 # Include rules
 # ------------------------------------------------------------------
 include: "rules/download_fastq.smk"
@@ -151,6 +161,7 @@ include: "rules/index_bam.smk"
 include: "rules/haplotypecaller.smk"
 include: "rules/select_variants.smk"
 include: "rules/filter_snps.smk"
+include: "rules/filter_indels.smk"
 
 
 rule all:
@@ -175,4 +186,6 @@ rule all:
         RAW_INDEL_VCFS,
         RAW_INDEL_VCF_IDXS,
         FILTERED_SNP_VCFS,
-        FILTERED_SNP_VCF_IDXS
+        FILTERED_SNP_VCF_IDXS,
+        FILTERED_INDEL_VCFS,
+        FILTERED_INDEL_VCF_IDXS
