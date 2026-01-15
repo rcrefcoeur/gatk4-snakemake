@@ -165,6 +165,23 @@ BQSR_INDEL_VCF_IDXS = [v + ".idx" for v in BQSR_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
+# Step 9 — BQSR #1 (BaseRecalibrator)
+# Step 10 — Apply BQSR
+# ------------------------------------------------------------------
+BQSR_DIR = config.get("bqsr_dir", "results/bqsr")
+Path(BQSR_DIR).mkdir(parents=True, exist_ok=True)
+
+BQSR_TABLES = expand(
+    os.path.join(BQSR_DIR, "{sample}.recal_data.table"),
+    sample=SAMPLES,
+)
+RECAL_BAMS = expand(
+    os.path.join(BQSR_DIR, "{sample}.recal_reads.bam"),
+    sample=SAMPLES,
+)
+
+
+# ------------------------------------------------------------------
 # Include rules
 # ------------------------------------------------------------------
 include: "rules/download_fastq.smk"
@@ -179,6 +196,7 @@ include: "rules/select_variants.smk"
 include: "rules/filter_snps.smk"
 include: "rules/filter_indels.smk"
 include: "rules/exclude_filtered_variants.smk"
+include: "rules/bqsr.smk"
 
 
 rule all:
@@ -209,4 +227,6 @@ rule all:
         BQSR_SNP_VCFS,
         BQSR_SNP_VCF_IDXS,
         BQSR_INDEL_VCFS,
-        BQSR_INDEL_VCF_IDXS
+        BQSR_INDEL_VCF_IDXS,
+        BQSR_TABLES,
+        RECAL_BAMS

@@ -1,8 +1,8 @@
 # GATK4 Snakemake Pipeline (gatk4-mainline)
 
-A reproducible Snakemake workflow implementing a **GATK4-based pipeline up through first-pass variant calling**:
+A reproducible Snakemake workflow implementing a **GATK4-based pipeline up through analysis-ready BAM**:
 
-**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller**
+**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller → hard-filter → PASS-only known-sites → BQSR → ApplyBQSR**
 
 Minimal required inputs on a clean clone:
 
@@ -41,7 +41,30 @@ For each accession / sample:
 
 4. **Step 4 — Call Variants**
    - GATK4 `HaplotypeCaller`
-   - Output: `results/vcfs/<sample>.raw_variants.vcf` (first-pass variant calling)
+   - Output: `results/vcfs/<sample>.raw_variants.vcf` (first-pass call)
+
+5. **Step 5 — Split Variants**
+   - `SelectVariants` → `raw_snps.vcf` + `raw_indels.vcf`
+
+6. **Step 6 — Filter SNPs**
+   - `VariantFiltration` → `filtered_snps.vcf` (tags FAIL in FILTER, keeps PASS)
+
+7. **Step 7 — Filter INDELs**
+   - `VariantFiltration` → `filtered_indels.vcf` (tags FAIL in FILTER, keeps PASS)
+
+8. **Step 8 — Exclude Filtered Variants**
+   - `SelectVariants --exclude-filtered`
+   - Outputs PASS-only known-sites:
+     - `bqsr_snps.vcf`
+     - `bqsr_indels.vcf`
+
+9. **Step 9 — BQSR #1**
+   - `BaseRecalibrator`
+   - Output: `results/bqsr/<sample>.recal_data.table`
+
+10. **Step 10 — Apply BQSR**
+   - `ApplyBQSR`
+   - Output: `results/bqsr/<sample>.recal_reads.bam` (**analysis-ready BAM**)
 
 ---
 
@@ -70,7 +93,7 @@ gatk4-snakemake/
 │   ├── picard.yml  
 │   ├── reference.yml  
 │   ├── sra-tools.yml  
-│   └── gatk.yml    
+│   └── gatk.yml  
 ├── rules/  
 │   ├── download_fastq.smk  
 │   ├── reference.smk  
@@ -78,16 +101,22 @@ gatk4-snakemake/
 │   ├── sort_bam.smk  
 │   ├── metrics.smk  
 │   ├── mark_duplicates.smk  
-│   └── index_bam.smk  
-│   └── haplotypecaller.smk  
-├── reference/                # generated  
-├── fastq/                    # generated  
-├── results/                  # generated  
+│   ├── index_bam.smk  
+│   ├── haplotypecaller.smk  
+│   ├── select_variants.smk  
+│   ├── filter_snps.smk  
+│   ├── filter_indels.smk  
+│   ├── exclude_filtered_variants.smk  
+│   └── bqsr.smk  
+├── reference/     # generated  
+├── fastq/         # generated  
+├── results/       # generated  
 │   ├── bam/  
 │   ├── metrics/  
-│   └── dedup/  
-│   └── vcfs/  
-└── .snakemake/               # generated (conda env cache, logs, metadata)  
+│   ├── dedup/  
+│   ├── vcfs/  
+│   └── bqsr/  
+└── .snakemake/    # generated (conda env cache, logs, metadata)  
 
 ---
 
@@ -150,9 +179,9 @@ Edit config.yaml as needed. Common keys:
 ### Dry run (validate DAG)  
 snakemake -n -p --use-conda --cores 1 results/dedup/SRR2584863.dedup.bai
 
-### Run Step 4: HaplotypeCaller for one sample 
+### Run ApplyBQSR for one sample (will build all prerequisites) 
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going \  
-&nbsp;&nbsp;&nbsp;&nbsp;results/vcfs/SRR2584863.raw_variants.vcf
+&nbsp;&nbsp;&nbsp;&nbsp;results/bqsr/SRR2584863.recal_reads.bam
 
 ### Run everything in rule all
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going
