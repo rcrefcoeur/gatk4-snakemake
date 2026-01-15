@@ -16,35 +16,35 @@ This workflow automates a complete GATK4 preprocessing and variant-calling pipel
 ---
 
 ## 📁 Folder Structure
-gatk4-snakemake/
-├── LICENSE
-├── README.md
-├── Snakefile
-├── config.yaml
-├── environment.yml
-├── .gitignore
-├── accessions.txt
-├── envs/
-│   ├── bwa.yml
-│   ├── gatk.yml
-│   ├── reference.yml
-│   ├── snpeff.yml
-│   └── sra-tools.yml
-├── scripts/
-│   └── download_fastq.sh
-├── rules/
-│   ├── align.smk
-│   ├── download_fastq.smk
-│   └── reference.smk
-├── reference/
-│   └── Homo_sapiens.GRCh38.dna.chromosome.15.fa
-├── fastq/
-│   ├── SRRxxxxxx_1.fastq.gz
-│   └── SRRxxxxxx_2.fastq.gz
-├── results/
-│   ├── bam/
-│   ├── vcfs/
-│   └── logs/
+gatk4-snakemake/  
+├── LICENSE  
+├── README.md  
+├── Snakefile  
+├── config.yaml  
+├── environment.yml  
+├── .gitignore  
+├── accessions.txt  
+├── envs/  
+│   ├── bwa.yml  
+│   ├── gatk.yml  
+│   ├── reference.yml  
+│   ├── snpeff.yml  
+│   └── sra-tools.yml  
+├── scripts/  
+│   └── download_fastq.sh  
+├── rules/  
+│   ├── align.smk  
+│   ├── download_fastq.smk  
+│   └── reference.smk  
+├── reference/  
+│   └── Homo_sapiens.GRCh38.dna.chromosome.15.fa  
+├── fastq/  
+│   ├── SRRxxxxxx_1.fastq.gz  
+│   └── SRRxxxxxx_2.fastq.gz  
+├── results/  
+│   ├── bam/  
+│   ├── vcfs/  
+│   └── logs/  
 
 
 ---
