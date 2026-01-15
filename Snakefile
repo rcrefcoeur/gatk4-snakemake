@@ -129,7 +129,7 @@ RAW_INDEL_VCF_IDXS = [v + ".idx" for v in RAW_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
-# Step 6 — Filter SNPs (hard filters; PASS retained for later extraction)
+# Step 6 — Filter SNPs
 # ------------------------------------------------------------------
 FILTERED_SNP_VCFS = expand(
     os.path.join(VCF_DIR, "{sample}.filtered_snps.vcf"),
@@ -139,13 +139,29 @@ FILTERED_SNP_VCF_IDXS = [v + ".idx" for v in FILTERED_SNP_VCFS]
 
 
 # ------------------------------------------------------------------
-# Step 7 — Filter INDELs (hard filters; PASS retained for later extraction)
+# Step 7 — Filter INDELs
 # ------------------------------------------------------------------
 FILTERED_INDEL_VCFS = expand(
     os.path.join(VCF_DIR, "{sample}.filtered_indels.vcf"),
     sample=SAMPLES,
 )
 FILTERED_INDEL_VCF_IDXS = [v + ".idx" for v in FILTERED_INDEL_VCFS]
+
+
+# ------------------------------------------------------------------
+# Step 8 — Exclude Filtered Variants (PASS-only for BQSR)
+# ------------------------------------------------------------------
+BQSR_SNP_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.bqsr_snps.vcf"),
+    sample=SAMPLES,
+)
+BQSR_SNP_VCF_IDXS = [v + ".idx" for v in BQSR_SNP_VCFS]
+
+BQSR_INDEL_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.bqsr_indels.vcf"),
+    sample=SAMPLES,
+)
+BQSR_INDEL_VCF_IDXS = [v + ".idx" for v in BQSR_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
@@ -162,6 +178,7 @@ include: "rules/haplotypecaller.smk"
 include: "rules/select_variants.smk"
 include: "rules/filter_snps.smk"
 include: "rules/filter_indels.smk"
+include: "rules/exclude_filtered_variants.smk"
 
 
 rule all:
@@ -188,4 +205,8 @@ rule all:
         FILTERED_SNP_VCFS,
         FILTERED_SNP_VCF_IDXS,
         FILTERED_INDEL_VCFS,
-        FILTERED_INDEL_VCF_IDXS
+        FILTERED_INDEL_VCF_IDXS,
+        BQSR_SNP_VCFS,
+        BQSR_SNP_VCF_IDXS,
+        BQSR_INDEL_VCFS,
+        BQSR_INDEL_VCF_IDXS
