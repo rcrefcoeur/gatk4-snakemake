@@ -1,8 +1,8 @@
 # GATK4 Snakemake Pipeline (gatk4-mainline)
 
-A reproducible Snakemake workflow implementing a **GATK4-based pipeline up through analysis-ready BAM**:
+A reproducible Snakemake workflow implementing a **GATK4-based pipeline up through post-BQSR variant calling + SNP/INDEL split**:
 
-**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller → hard-filter → PASS-only known-sites → BQSR → ApplyBQSR**
+**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller → hard-filter → PASS-only known-sites → BQSR → ApplyBQSR → (optional BQSR 2nd pass + plots) → HaplotypeCaller (recal) → split SNP/INDEL (recal)**
 
 Minimal required inputs on a clean clone:
 
@@ -66,6 +66,26 @@ For each accession / sample:
    - `ApplyBQSR`
    - Output: `results/bqsr/<sample>.recal_reads.bam` (**analysis-ready BAM**)
 
+11. **Step 11 — BQSR #2 (optional)**
+- `BaseRecalibrator` on `recal_reads.bam`
+- Output: `results/bqsr/<sample>.post_recal_data.table`
+
+12. Step 12 — AnalyzeCovariates (optional; requires Step 11)**
+- `AnalyzeCovariates`
+- Outputs:
+  - `results/bqsr/<sample>.recalibration_plots.pdf`
+  - `results/bqsr/<sample>.recalibration_plots.csv`
+
+13. **Step 13 — Call Variants again (post-BQSR)**
+- GATK4 `HaplotypeCaller` on `recal_reads.bam`
+- Output: `results/vcfs/<sample>.raw_variants_recal.vcf`
+
+14. **Step 14 — Split Variants again (post-BQSR SNP vs INDEL)**
+- `SelectVariants` on `raw_variants_recal.vcf`
+- Outputs:
+  - `results/vcfs/<sample>.raw_snps_recal.vcf`
+  - `results/vcfs/<sample>.raw_indels_recal.vcf`
+
 ---
 
 ## 🧾 accessions.txt (Comments Supported)
@@ -87,36 +107,40 @@ gatk4-snakemake/
 ├── config.yaml  
 ├── accessions.txt  
 ├── scripts/  
-│   └── download_fastq.sh  
+│ └── download_fastq.sh  
 ├── envs/  
-│   ├── bwa.yml  
-│   ├── picard.yml  
-│   ├── reference.yml  
-│   ├── sra-tools.yml  
-│   └── gatk.yml  
+│ ├── bwa.yml  
+│ ├── picard.yml  
+│ ├── reference.yml  
+│ ├── sra-tools.yml  
+│ └── gatk.yml  
 ├── rules/  
-│   ├── download_fastq.smk  
-│   ├── reference.smk  
-│   ├── align.smk  
-│   ├── sort_bam.smk  
-│   ├── metrics.smk  
-│   ├── mark_duplicates.smk  
-│   ├── index_bam.smk  
-│   ├── haplotypecaller.smk  
-│   ├── select_variants.smk  
-│   ├── filter_snps.smk  
-│   ├── filter_indels.smk  
-│   ├── exclude_filtered_variants.smk  
-│   └── bqsr.smk  
-├── reference/     # generated  
-├── fastq/         # generated  
-├── results/       # generated  
-│   ├── bam/  
-│   ├── metrics/  
-│   ├── dedup/  
-│   ├── vcfs/  
-│   └── bqsr/  
-└── .snakemake/    # generated (conda env cache, logs, metadata)  
+│ ├── download_fastq.smk  
+│ ├── reference.smk  
+│ ├── align.smk  
+│ ├── sort_bam.smk  
+│ ├── metrics.smk  
+│ ├── mark_duplicates.smk  
+│ ├── index_bam.smk  
+│ ├── haplotypecaller.smk  
+│ ├── select_variants.smk  
+│ ├── filter_snps.smk  
+│ ├── filter_indels.smk  
+│ ├── exclude_filtered_variants.smk  
+│ ├── bqsr.smk  
+│ ├── analyze_covariates.smk  
+│ ├── haplotypecaller_recal.smk  
+│ └── select_variants_recal.smk  
+├── reference/ # generated  
+├── fastq/ # generated  
+├── results/ # generated  
+│ ├── bam/  
+│ ├── metrics/  
+│ ├── dedup/  
+│ ├── vcfs/  
+│ ├── bqsr/  
+│ └── logs/  
+└── .snakemake/ # generated (conda env cache, metadata, logs)  
 
 ---
 
@@ -166,12 +190,18 @@ git clone git@github.com:rcrefcoeur/gatk4-snakemake.git
 ---
 
 ## ⚙ Configuration
-Edit config.yaml as needed. Common keys:
-- accessions_file
-- fastq_dir
+### BQSR second pass toggle
+bqsr_second_pass controls whether Steps 11–12 run.
+- Recommended default: false (faster; still produces analysis-ready BAM at Step 10)
+- Set to true if you want the recalibration report (AnalyzeCovariates plots)  
+Example:  
+bqsr_second_pass: false  
+
+### Directory keys
+Common keys in config.yaml:
+- accessions_file, fastq_dir, samples.tsv
 - reference_base_url, references, reference_canonical, reference_dir
-- bam_dir, metrics_dir, dedup_dir, vcf_dir
-- samples_tsv (generated) 
+- bam_dir, metrics_dir, dedup_dir, vcf_dir, bqsr_dir
 
 ---
 
@@ -179,9 +209,9 @@ Edit config.yaml as needed. Common keys:
 ### Dry run (validate DAG)  
 snakemake -n -p --use-conda --cores 1 results/dedup/SRR2584863.dedup.bai
 
-### Run ApplyBQSR for one sample (will build all prerequisites) 
+### Run post-BQSR SNP/INDEL split (Step 14 targets; will build prerequisites) 
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going \  
-&nbsp;&nbsp;&nbsp;&nbsp;results/bqsr/SRR2584863.recal_reads.bam
+&nbsp;&nbsp;&nbsp;&nbsp;results/vcfs/SRR2584863.raw_snps_recal.vcf
 
 ### Run everything in rule all
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going

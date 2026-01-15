@@ -160,6 +160,21 @@ RECAL_BAIS = expand(
 
 
 # ------------------------------------------------------------------
+# Step 14 — Extract SNPs & Indels (post-BQSR)
+# ------------------------------------------------------------------
+RAW_SNPS_RECAL = expand(
+    os.path.join(VCF_DIR, "{sample}.raw_snps_recal.vcf"),
+    sample=SAMPLES,
+)
+RAW_INDELS_RECAL = expand(
+    os.path.join(VCF_DIR, "{sample}.raw_indels_recal.vcf"),
+    sample=SAMPLES,
+)
+RAW_SNPS_RECAL_IDXS = [v + ".idx" for v in RAW_SNPS_RECAL]
+RAW_INDELS_RECAL_IDXS = [v + ".idx" for v in RAW_INDELS_RECAL]
+
+
+# ------------------------------------------------------------------
 # Include rules
 # ------------------------------------------------------------------
 include: "rules/download_fastq.smk"
@@ -177,6 +192,7 @@ include: "rules/exclude_filtered_variants.smk"
 include: "rules/bqsr.smk"
 include: "rules/analyze_covariates.smk"
 include: "rules/haplotypecaller_recal.smk"
+include: "rules/select_variants_recal.smk"
 
 
 rule all:
@@ -217,3 +233,7 @@ rule all:
         RECAL_BAIS,
         RAW_RECAL_VCFS,
         RAW_RECAL_VCF_IDXS,
+        RAW_SNPS_RECAL,
+        RAW_SNPS_RECAL_IDXS,
+        RAW_INDELS_RECAL,
+        RAW_INDELS_RECAL_IDXS,
