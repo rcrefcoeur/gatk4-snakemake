@@ -5,3 +5,19 @@ channels:
 dependencies:
   - gatk4=4.6.2.0
   - openjdk=17
+
+  # Required for AnalyzeCovariates (Step 12): provides Rscript
+  - r-base
+
+  # Common plotting/data packages GATK's R scripts expect
+  - r-ggplot2
+  - r-gplots
+  - r-gdata
+  - r-reshape2
+  - r-gsalib
+
+  # Often needed by plot/report scripts (kept minimal)
+  #- r-scales
+  #- r-gridextra
+  #- r-rcolorbrewer
+  #- r-ggrepel

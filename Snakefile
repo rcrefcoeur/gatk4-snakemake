@@ -44,7 +44,6 @@ CANON_FA = os.path.join(REF_DIR, CANON_FILE)
 REF_FAIDX = [REF_FA + ".fai", CANON_FA + ".fai"]
 REF_DICT = [os.path.splitext(REF_FA)[0] + ".dict", os.path.splitext(CANON_FA)[0] + ".dict"]
 
-# BWA index for canonical reference
 BWA_INDEX = [CANON_FA + ext for ext in [".amb", ".ann", ".bwt", ".pac", ".sa"]]
 
 
@@ -80,8 +79,6 @@ DEDUP_BAI = expand(os.path.join(DEDUP_DIR, "{sample}.dedup.bai"), sample=SAMPLES
 
 # ------------------------------------------------------------------
 # Step 4 — Call Variants (GATK4 HaplotypeCaller)
-# Input: dedup + indexed BAM, reference
-# Output: raw_variants.vcf (first-pass call)
 # ------------------------------------------------------------------
 VCF_DIR = config["vcf_dir"]
 Path(VCF_DIR).mkdir(parents=True, exist_ok=True)
@@ -92,8 +89,6 @@ RAW_VCF_IDXS = [v + ".idx" for v in RAW_VCFS]
 
 # ------------------------------------------------------------------
 # Step 5 — Split Variants (SNP vs INDEL)
-# Input: raw_variants.vcf
-# Output: raw_snps.vcf, raw_indels.vcf
 # ------------------------------------------------------------------
 RAW_SNP_VCFS = expand(os.path.join(VCF_DIR, "{sample}.raw_snps.vcf"), sample=SAMPLES)
 RAW_SNP_VCF_IDXS = [v + ".idx" for v in RAW_SNP_VCFS]
@@ -104,8 +99,6 @@ RAW_INDEL_VCF_IDXS = [v + ".idx" for v in RAW_INDEL_VCFS]
 
 # ------------------------------------------------------------------
 # Step 6 — Filter SNPs
-# Input: raw_snps.vcf
-# Output: filtered_snps.vcf (+ idx)
 # ------------------------------------------------------------------
 FILTERED_SNP_VCFS = expand(os.path.join(VCF_DIR, "{sample}.filtered_snps.vcf"), sample=SAMPLES)
 FILTERED_SNP_VCF_IDXS = [v + ".idx" for v in FILTERED_SNP_VCFS]
@@ -113,8 +106,6 @@ FILTERED_SNP_VCF_IDXS = [v + ".idx" for v in FILTERED_SNP_VCFS]
 
 # ------------------------------------------------------------------
 # Step 7 — Filter INDELs
-# Input: raw_indels.vcf
-# Output: filtered_indels.vcf (+ idx)
 # ------------------------------------------------------------------
 FILTERED_INDEL_VCFS = expand(os.path.join(VCF_DIR, "{sample}.filtered_indels.vcf"), sample=SAMPLES)
 FILTERED_INDEL_VCF_IDXS = [v + ".idx" for v in FILTERED_INDEL_VCFS]
@@ -122,8 +113,6 @@ FILTERED_INDEL_VCF_IDXS = [v + ".idx" for v in FILTERED_INDEL_VCFS]
 
 # ------------------------------------------------------------------
 # Step 8 — Exclude Filtered Variants (PASS-only for BQSR)
-# Input: filtered_snps.vcf, filtered_indels.vcf
-# Output: bqsr_snps.vcf, bqsr_indels.vcf (+ idx)
 # ------------------------------------------------------------------
 BQSR_SNP_VCFS = expand(os.path.join(VCF_DIR, "{sample}.bqsr_snps.vcf"), sample=SAMPLES)
 BQSR_SNP_VCF_IDXS = [v + ".idx" for v in BQSR_SNP_VCFS]
@@ -133,9 +122,10 @@ BQSR_INDEL_VCF_IDXS = [v + ".idx" for v in BQSR_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
-# Step 9 — BQSR #1 (BaseRecalibrator)
+# Step 9 — BQSR #1
 # Step 10 — Apply BQSR
-# Step 11 — BQSR #2 (optional; for AnalyzeCovariates reporting)
+# Step 11 — BQSR #2 (optional)
+# Step 12 — AnalyzeCovariates (optional; requires Step 11)
 # ------------------------------------------------------------------
 BQSR_DIR = config["bqsr_dir"]
 Path(BQSR_DIR).mkdir(parents=True, exist_ok=True)
@@ -143,6 +133,9 @@ Path(BQSR_DIR).mkdir(parents=True, exist_ok=True)
 BQSR_TABLES = expand(os.path.join(BQSR_DIR, "{sample}.recal_data.table"), sample=SAMPLES)
 RECAL_BAMS = expand(os.path.join(BQSR_DIR, "{sample}.recal_reads.bam"), sample=SAMPLES)
 POST_BQSR_TABLES = expand(os.path.join(BQSR_DIR, "{sample}.post_recal_data.table"), sample=SAMPLES)
+
+RECAL_PLOTS_PDF = expand(os.path.join(BQSR_DIR, "{sample}.recalibration_plots.pdf"), sample=SAMPLES)
+RECAL_PLOTS_CSV = expand(os.path.join(BQSR_DIR, "{sample}.recalibration_plots.csv"), sample=SAMPLES)
 
 ENABLE_BQSR_SECOND_PASS = bool(config.get("bqsr_second_pass", False))
 
@@ -163,6 +156,7 @@ include: "rules/filter_snps.smk"
 include: "rules/filter_indels.smk"
 include: "rules/exclude_filtered_variants.smk"
 include: "rules/bqsr.smk"
+include: "rules/analyze_covariates.smk"
 
 
 rule all:
@@ -196,4 +190,6 @@ rule all:
         BQSR_INDEL_VCF_IDXS,
         BQSR_TABLES,
         RECAL_BAMS,
-        (POST_BQSR_TABLES if ENABLE_BQSR_SECOND_PASS else [])
+        (POST_BQSR_TABLES if ENABLE_BQSR_SECOND_PASS else []),
+        (RECAL_PLOTS_PDF if ENABLE_BQSR_SECOND_PASS else []),
+        (RECAL_PLOTS_CSV if ENABLE_BQSR_SECOND_PASS else [])
