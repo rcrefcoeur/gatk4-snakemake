@@ -1,51 +1,81 @@
-# GATK4 Snakemake Pipeline
+# GATK4 Snakemake Pipeline (gatk4-mainline)
 
-A reproducible Snakemake workflow for GATK4-based variant calling, including reference preparation, SRA FASTQ retrieval, alignment, variant calling, and modular rule organization.
+A reproducible Snakemake workflow that implements the **shared preprocessing baseline** for a GATK4-based variant calling pipeline:
+**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index**.
+
+This branch intentionally **stops at**:
+
+✅ `results/dedup/<SAMPLE>.dedup.bai`
+
+GATK4 variant calling steps (BQSR, HaplotypeCaller, joint genotyping, filtering, annotation) will be added after this checkpoint.
+---
+
+## 📌 Project Goals
+
+- Minimal required inputs: **`config.yaml`** + **`accessions.txt`**
+- Fully reproducible toolchain via **Snakemake + per-rule conda environments**
+- Modular rules under `rules/`
 
 ---
 
-## 📌 Aim of the Project
-This workflow automates a complete GATK4 preprocessing and variant-calling pipeline. It supports:
-- Automatic download of chr15 reference (FASTA + index + dict)
-- Automatic FASTQ download from SRA based on a list of accessions
-- Alignment and BAM processing
-- Variant calling and annotation (future work)
-- Modular Snakemake rule structure
-- Reproducible conda environments
+## ✅ What’s Implemented (Current Baseline)
+
+For each accession / sample:
+
+1. Download Ensembl chr15 reference (`.fa.gz` → `.fa`)
+2. Create:
+   - `.fai` (samtools faidx)
+   - `.dict` (GATK CreateSequenceDictionary)
+   - **BWA index** (bwa index) for canonical `reference/chr_15.fa`
+3. Download FASTQs (SRA Toolkit)
+4. Align reads (bwa mem)
+5. Sort alignments (samtools/picard rule)
+6. Mark duplicates (Picard)
+7. Build BAM index (Picard)
+
+---
+
+## 🧾 accessions.txt (Comments Supported)
+
+Lines starting with `#` are ignored, so you can keep optional accessions ready:
+
+```text
+SRR2584863
+# SRR2584866
+# SRR2584868
+
+Uncomment later if time/disk allow.
 
 ---
 
 ## 📁 Folder Structure
-gatk4-snakemake/
-├── LICENSE
-├── README.md
-├── Snakefile
-├── config.yaml
-├── environment.yml
-├── .gitignore
-├── accessions.txt
-├── envs/
-│   ├── bwa.yml
-│   ├── gatk.yml
-│   ├── reference.yml
-│   ├── snpeff.yml
-│   └── sra-tools.yml
-├── scripts/
-│   └── download_fastq.sh
-├── rules/
-│   ├── align.smk
-│   ├── download_fastq.smk
-│   └── reference.smk
-├── reference/
-│   └── Homo_sapiens.GRCh38.dna.chromosome.15.fa
-├── fastq/
-│   ├── SRRxxxxxx_1.fastq.gz
-│   └── SRRxxxxxx_2.fastq.gz
-├── results/
-│   ├── bam/
-│   ├── vcfs/
-│   └── logs/
-
+gatk4-snakemake/  
+├── Snakefile  
+├── config.yaml  
+├── accessions.txt  
+├── scripts/  
+│   └── download_fastq.sh  
+├── envs/  
+│   ├── bwa.yml  
+│   ├── picard.yml  
+│   ├── reference.yml  
+│   ├── sra-tools.yml  
+│   └── gatk.yml              # reserved for upcoming GATK4 steps  
+├── rules/  
+│   ├── download_fastq.smk  
+│   ├── reference.smk  
+│   ├── align.smk  
+│   ├── sort_bam.smk  
+│   ├── metrics.smk  
+│   ├── mark_duplicates.smk  
+│   └── index_bam.smk  
+├── reference/                # generated  
+├── fastq/                    # generated  
+├── results/                  # generated  
+│   ├── bam/  
+│   ├── metrics/  
+│   └── dedup/  
+└── .snakemake/               # generated (conda env cache, logs, metadata)  
 
 ---
 
@@ -58,100 +88,62 @@ wsl --install
 cd ~
 git clone git@github.com:rcrefcoeur/gatk4-snakemake.git
 cd gatk4-snakemake
+git checkout gatk4-mainline  
 
 ### 3️⃣ Install Miniconda
 cd ~
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
-source ~/.bashrc
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  
+bash Miniconda3-latest-Linux-x86_64.sh  
+source ~/.bashrc  
 
-### 4️⃣ Install Mamba + Create Workflow Environment
-conda install -n base -c conda-forge mamba -y
+### 4️⃣ Create a Snakemake “driver” environment
 
-mamba create -n gatk-tools -c conda-forge -c bioconda -y \
-  bwa samtools sra-tools gatk4 picard snpeff snakemake wget curl python
+This env is only to run Snakemake. Rule-specific envs come from envs/*.yml via --use-conda.
 
-conda activate gatk-tools
+conda install -n base -c conda-forge mamba -y  
+mamba create -n snakemake -c conda-forge -c bioconda -y snakemake  
+conda activate snakemake  
 
 ---
 
 ## 🔐 GitHub Authentication in WSL
 
 ### SSH (Recommended)
-ssh-keygen -t ed25519 -C "your_email@example.com"
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-cat ~/.ssh/id_ed25519.pub
+ssh-keygen -t ed25519 -C "your_email@example.com"  
+eval "$(ssh-agent -s)"  
+ssh-add ~/.ssh/id_ed25519  
+cat ~/.ssh/id_ed25519.pub  
 
-Add this key at: https://github.com/settings/ssh/new
+Add this key at: https://github.com/settings/ssh/new  
 
-Test:
-ssh -T git@github.com
+Test:  
+ssh -T git@github.com  
 
-Clone via SSH:
-git clone git@github.com:rcrefcoeur/gatk4-snakemake.git
-
----
-
-## ⚙ Running the Workflow
-
-Run entire pipeline:
-snakemake --use-conda --cores 4
-
-Dry run:
-snakemake -n
-
-Run specific target:
-snakemake --use-conda reference/chr15.fa
+Clone via SSH:  
+git clone git@github.com:rcrefcoeur/gatk4-snakemake.git  
 
 ---
 
-## 🧬 Workflow Stages
-
-### ✔ Completed
-- Download chr15 reference from Ensembl
-- Indexing + dictionary creation
-- Download FASTQ from SRA using accessions.txt
-- Auto-generate samples.tsv
-
-### ⏳ To Be Implemented
-- BWA-MEM2 alignment
-- Sorting + indexing BAMs
-- Duplicate marking (Picard)
-- BQSR
-- HaplotypeCaller (per-sample GVCF)
-- Joint genotyping
-- Variant filtering
-- Annotation with snpEff
-- Final reports + QC summaries
+## ⚙ Configuration
+Edit config.yaml as needed. Key entries:  
+- accessions_file: list of SRA accessions  
+- samples_tsv: mapping of sample IDs to FASTQ paths  
+- reference_dir, reference_canonical  
+- metrics_dir, bam_dir, dedup_dir, realign_dir  
+- gatk3_tarball: path to the manual tarball (see above)  
 
 ---
 
-## 📝 Configuration File
-Example `config.yaml`:
+## ▶️ Running the Workflow
+### Dry run (validate DAG)  
+snakemake -n -p --use-conda --cores 1 results/dedup/SRR2584863.dedup.bai
 
-reference_url: "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.15.fa.gz"
-reference_dir: "reference"
-reference_fa: "reference/Homo_sapiens.GRCh38.dna.chromosome.15.fa"
+### Run the baseline for one sample (recommended)  
+snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going \  
+&nbsp;&nbsp;&nbsp;&nbsp;results/dedup/SRR2584863.dedup.bai
 
-accessions_file: "accessions.txt"
-samples_tsv: "samples.tsv"
-fastq_dir: "fastq"
-
-threads: 6
-platform: "ILLUMINA"
-outdir: "results"
-
----
-
-## 🧾 FASTQ Download
-`accessions.txt` example:
-SRR2584863
-SRR2584866
-SRR2584868
-
-`scripts/download_fastq.sh` runs automatically during:
-snakemake --use-conda
+### Run everything in rule all
+snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going
 
 ---
 

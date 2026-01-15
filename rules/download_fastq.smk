@@ -1,18 +1,24 @@
-# rules/download_fastq.smk
+from pathlib import Path
+
+LOG_DIR = "results/logs"
+Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
+
 
 rule download_fastq:
     input:
-        accessions = config["accessions_file"]
+        accessions=config["accessions_file"]
     output:
-        r1 = expand("{fastq_dir}/{acc}_1.fastq.gz", fastq_dir=config["fastq_dir"], acc=[l.strip() for l in open(config["accessions_file"]) if l.strip()]),
-        r2 = expand("{fastq_dir}/{acc}_2.fastq.gz", fastq_dir=config["fastq_dir"], acc=[l.strip() for l in open(config["accessions_file"]) if l.strip()]),
-        samples = config["samples_tsv"]
+        r1=expand("{fastq_dir}/{sample}_1.fastq.gz", fastq_dir=config["fastq_dir"], sample=SAMPLES),
+        r2=expand("{fastq_dir}/{sample}_2.fastq.gz", fastq_dir=config["fastq_dir"], sample=SAMPLES),
+        samples=config["samples_tsv"]
     threads: 4
     conda: "../envs/sra-tools.yml"
     log:
-        "../logs/download_fastq.log"
+        f"{LOG_DIR}/download_fastq.log"
     shell:
         r"""
+        set -euo pipefail
+        mkdir -p {LOG_DIR}
         bash scripts/download_fastq.sh \
             {input.accessions} \
             {config[fastq_dir]} \

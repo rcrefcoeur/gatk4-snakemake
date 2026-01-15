@@ -66,12 +66,12 @@ reference_dir: "reference"
 
 bam_dir: "results/bam"
 dedup_dir: "results/dedup"
+metrics_dir: "results/metrics"
 
 # Pipeline settings
 threads: 6
 platform: "ILLUMINA"
 samples_tsv: "samples.tsv"
-outdir: "results"
 
 # FASTQ / download settings (new for Option B)
 fastq_dir: "fastq"                  # directory where FASTQs will be stored
