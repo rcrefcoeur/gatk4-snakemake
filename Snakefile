@@ -141,6 +141,25 @@ ENABLE_BQSR_SECOND_PASS = bool(config.get("bqsr_second_pass", False))
 
 
 # ------------------------------------------------------------------
+# Step 13 — Call Variants again (analysis-ready BAM)
+# ------------------------------------------------------------------
+RAW_RECAL_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.raw_variants_recal.vcf"),
+    sample=SAMPLES,
+)
+RAW_RECAL_VCF_IDXS = [v + ".idx" for v in RAW_RECAL_VCFS]
+
+RECAL_BAMS = expand(
+    os.path.join(config["bqsr_dir"], "{sample}.recal_reads.bam"),
+    sample=SAMPLES,
+)
+RECAL_BAIS = expand(
+    os.path.join(config["bqsr_dir"], "{sample}.recal_reads.bai"),
+    sample=SAMPLES,
+)
+
+
+# ------------------------------------------------------------------
 # Include rules
 # ------------------------------------------------------------------
 include: "rules/download_fastq.smk"
@@ -157,6 +176,7 @@ include: "rules/filter_indels.smk"
 include: "rules/exclude_filtered_variants.smk"
 include: "rules/bqsr.smk"
 include: "rules/analyze_covariates.smk"
+include: "rules/haplotypecaller_recal.smk"
 
 
 rule all:
@@ -192,4 +212,8 @@ rule all:
         RECAL_BAMS,
         (POST_BQSR_TABLES if ENABLE_BQSR_SECOND_PASS else []),
         (RECAL_PLOTS_PDF if ENABLE_BQSR_SECOND_PASS else []),
-        (RECAL_PLOTS_CSV if ENABLE_BQSR_SECOND_PASS else [])
+        (RECAL_PLOTS_CSV if ENABLE_BQSR_SECOND_PASS else []),
+        RECAL_BAMS,
+        RECAL_BAIS,
+        RAW_RECAL_VCFS,
+        RAW_RECAL_VCF_IDXS,
