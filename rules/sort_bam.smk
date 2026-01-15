@@ -1,6 +1,12 @@
 import os
 from pathlib import Path
 
+# ------------------------------------------------------------------
+# Step 3b — Sort Alignments
+# Tool: samtools sort
+# Input: results/bam/<sample>.sam
+# Output: results/bam/<sample>.sorted.bam
+# ------------------------------------------------------------------
 BAM_DIR = config["bam_dir"]
 Path(BAM_DIR).mkdir(parents=True, exist_ok=True)
 

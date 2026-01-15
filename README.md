@@ -1,37 +1,47 @@
 # GATK4 Snakemake Pipeline (gatk4-mainline)
 
-A reproducible Snakemake workflow that implements the **shared preprocessing baseline** for a GATK4-based variant calling pipeline:
-**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index**.
+A reproducible Snakemake workflow implementing a **GATK4-based pipeline up through first-pass variant calling**:
 
-This branch intentionally **stops at**:
+**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller**
 
-✅ `results/dedup/<SAMPLE>.dedup.bai`
+Minimal required inputs on a clean clone:
 
-GATK4 variant calling steps (BQSR, HaplotypeCaller, joint genotyping, filtering, annotation) will be added after this checkpoint.
+✅ `config.yaml` + `accessions.txt`
+
 ---
 
 ## 📌 Project Goals
 
-- Minimal required inputs: **`config.yaml`** + **`accessions.txt`**
-- Fully reproducible toolchain via **Snakemake + per-rule conda environments**
-- Modular rules under `rules/`
+- Minimal inputs: **`config.yaml`** + **`accessions.txt`**
+- Reproducible execution via **Snakemake + per-rule conda envs** (`--use-conda`)
+- Modular rule organization under `rules/`
+- WSL2 + Ubuntu friendly
 
 ---
 
-## ✅ What’s Implemented (Current Baseline)
+## ✅ Implemented Steps (Current)
 
 For each accession / sample:
 
-1. Download Ensembl chr15 reference (`.fa.gz` → `.fa`)
-2. Create:
-   - `.fai` (samtools faidx)
-   - `.dict` (GATK CreateSequenceDictionary)
-   - **BWA index** (bwa index) for canonical `reference/chr_15.fa`
-3. Download FASTQs (SRA Toolkit)
-4. Align reads (bwa mem)
-5. Sort alignments (samtools/picard rule)
-6. Mark duplicates (Picard)
-7. Build BAM index (Picard)
+1. **Reference prep (chr15)**
+   - Download Ensembl chr15 FASTA (`.fa.gz` → `.fa`)
+   - Create `.fai` (samtools faidx)
+   - Create `.dict` (GATK CreateSequenceDictionary)
+   - Build **BWA index** for canonical `reference/chr_15.fa`
+
+2. **FASTQ download**
+   - SRA Toolkit download + conversion to gzipped paired FASTQs
+   - Auto-generate `samples.tsv` (for inspection; not required as an input)
+
+3. **Alignment + BAM processing**
+   - Align with `bwa mem` → SAM
+   - Sort → `results/bam/<sample>.sorted.bam`
+   - Mark duplicates (Picard) → `results/dedup/<sample>.dedup.bam`
+   - Build BAM index (Picard) → `results/dedup/<sample>.dedup.bai`
+
+4. **Step 4 — Call Variants**
+   - GATK4 `HaplotypeCaller`
+   - Output: `results/vcfs/<sample>.raw_variants.vcf` (first-pass variant calling)
 
 ---
 
@@ -43,7 +53,7 @@ Lines starting with `#` are ignored, so you can keep optional accessions ready:
 SRR2584863
 # SRR2584866
 # SRR2584868
-
+```
 Uncomment later if time/disk allow.
 
 ---
@@ -60,7 +70,7 @@ gatk4-snakemake/
 │   ├── picard.yml  
 │   ├── reference.yml  
 │   ├── sra-tools.yml  
-│   └── gatk.yml              # reserved for upcoming GATK4 steps  
+│   └── gatk.yml    
 ├── rules/  
 │   ├── download_fastq.smk  
 │   ├── reference.smk  
@@ -69,12 +79,14 @@ gatk4-snakemake/
 │   ├── metrics.smk  
 │   ├── mark_duplicates.smk  
 │   └── index_bam.smk  
+│   └── haplotypecaller.smk  
 ├── reference/                # generated  
 ├── fastq/                    # generated  
 ├── results/                  # generated  
 │   ├── bam/  
 │   ├── metrics/  
 │   └── dedup/  
+│   └── vcfs/  
 └── .snakemake/               # generated (conda env cache, logs, metadata)  
 
 ---
@@ -125,12 +137,12 @@ git clone git@github.com:rcrefcoeur/gatk4-snakemake.git
 ---
 
 ## ⚙ Configuration
-Edit config.yaml as needed. Key entries:  
-- accessions_file: list of SRA accessions  
-- samples_tsv: mapping of sample IDs to FASTQ paths  
-- reference_dir, reference_canonical  
-- metrics_dir, bam_dir, dedup_dir, realign_dir  
-- gatk3_tarball: path to the manual tarball (see above)  
+Edit config.yaml as needed. Common keys:
+- accessions_file
+- fastq_dir
+- reference_base_url, references, reference_canonical, reference_dir
+- bam_dir, metrics_dir, dedup_dir, vcf_dir
+- samples_tsv (generated) 
 
 ---
 
@@ -138,9 +150,9 @@ Edit config.yaml as needed. Key entries:
 ### Dry run (validate DAG)  
 snakemake -n -p --use-conda --cores 1 results/dedup/SRR2584863.dedup.bai
 
-### Run the baseline for one sample (recommended)  
+### Run Step 4: HaplotypeCaller for one sample 
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going \  
-&nbsp;&nbsp;&nbsp;&nbsp;results/dedup/SRR2584863.dedup.bai
+&nbsp;&nbsp;&nbsp;&nbsp;results/vcfs/SRR2584863.raw_variants.vcf
 
 ### Run everything in rule all
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going

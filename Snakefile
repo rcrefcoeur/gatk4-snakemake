@@ -47,6 +47,9 @@ REF_DICT = [
     os.path.join(REF_DIR, Path(CANON_FILE).with_suffix("").with_suffix(".dict").name),
 ]
 
+# BWA index files for canonical FASTA used by alignment
+BWA_INDEX = [CANON_FA + ext for ext in [".amb", ".ann", ".bwt", ".pac", ".sa"]]
+
 
 # ------------------------------------------------------------------
 # BAM outputs
@@ -78,7 +81,7 @@ METRICS = expand(
 
 
 # ------------------------------------------------------------------
-# Dedup + index outputs (last common step)
+# Dedup + index outputs
 # ------------------------------------------------------------------
 DEDUP_DIR = config.get("dedup_dir", "results/dedup")
 Path(DEDUP_DIR).mkdir(parents=True, exist_ok=True)
@@ -98,7 +101,20 @@ DEDUP_BAI = expand(
 
 
 # ------------------------------------------------------------------
-# Include rules (stop at BAM index)
+# Call Variants
+# ------------------------------------------------------------------
+VCF_DIR = config.get("vcf_dir", "results/vcfs")
+Path(VCF_DIR).mkdir(parents=True, exist_ok=True)
+
+RAW_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.raw_variants.vcf"),
+    sample=SAMPLES,
+)
+RAW_VCF_IDXS = [v + ".idx" for v in RAW_VCFS]
+
+
+# ------------------------------------------------------------------
+# Include rules
 # ------------------------------------------------------------------
 include: "rules/download_fastq.smk"
 include: "rules/reference.smk"
@@ -107,11 +123,11 @@ include: "rules/sort_bam.smk"
 include: "rules/metrics.smk"
 include: "rules/mark_duplicates.smk"
 include: "rules/index_bam.smk"
+include: "rules/haplotypecaller.smk"
 
 
 rule all:
     input:
-        # Generated early; useful for inspection, but no longer used at parse-time:
         config["samples_tsv"],
         FASTQ_R1,
         FASTQ_R2,
@@ -119,8 +135,11 @@ rule all:
         CANON_FA,
         REF_FAIDX,
         REF_DICT,
+        BWA_INDEX,
         SORTED_BAMS,
         METRICS,
         DEDUP_BAMS,
         DEDUP_METRICS,
-        DEDUP_BAI
+        DEDUP_BAI,
+        RAW_VCFS,
+        RAW_VCF_IDXS

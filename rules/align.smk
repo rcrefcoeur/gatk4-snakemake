@@ -1,9 +1,12 @@
-# =========================
-# FILE: rules/align.smk
-# =========================
 import os
 from pathlib import Path
 
+# ------------------------------------------------------------------
+# Step 3 — Align Reads
+# Tool: bwa mem
+# Input: fastq/<sample>_1.fastq.gz, fastq/<sample>_2.fastq.gz, reference/chr_15.fa (+ BWA index)
+# Output: results/bam/<sample>.sam
+# ------------------------------------------------------------------
 BAM_DIR = config.get("bam_dir", "results/bam")
 Path(BAM_DIR).mkdir(parents=True, exist_ok=True)
 

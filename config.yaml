@@ -67,12 +67,12 @@ reference_dir: "reference"
 bam_dir: "results/bam"
 dedup_dir: "results/dedup"
 metrics_dir: "results/metrics"
+vcf_dir: "results/vcfs"
 
 # Pipeline settings
 threads: 6
 platform: "ILLUMINA"
-samples_tsv: "samples.tsv"
 
-# FASTQ / download settings (new for Option B)
-fastq_dir: "fastq"                  # directory where FASTQs will be stored
-accessions_file: "accessions.txt"   # file listing SRR accessions to download
+samples_tsv: "samples.tsv"
+fastq_dir: "fastq"
+accessions_file: "accessions.txt"

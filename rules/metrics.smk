@@ -1,6 +1,12 @@
 import os
 from pathlib import Path
 
+# ------------------------------------------------------------------
+# Step 3c — Collect Metrics (QC)
+# Tools: Picard + samtools
+# Input: results/bam/<sample>.sorted.bam
+# Output: results/metrics/<sample>.alignment_metrics.txt (and any other metrics you add here)
+# ------------------------------------------------------------------
 METRICS_DIR = config.get("metrics_dir", "results/metrics")
 Path(METRICS_DIR).mkdir(parents=True, exist_ok=True)
 

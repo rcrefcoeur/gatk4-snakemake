@@ -4,6 +4,17 @@
 import os
 from pathlib import Path
 
+# ------------------------------------------------------------------
+# Step 2 — Reference Preparation
+# Input: Ensembl reference FASTA (.fa.gz URL), specified in config.yaml
+# Output:
+#   - reference/<downloaded>.fa
+#   - reference/<downloaded>.fa.fai
+#   - reference/<canonical>.fa (symlink/copy)
+#   - reference/<canonical>.fa.fai
+#   - reference/<*.dict> dictionaries
+#   - BWA index for canonical FASTA (.amb/.ann/.bwt/.pac/.sa)
+# -----------------------------------------------------------------
 REF_DIR = config["reference_dir"]
 REF_GZ = config["references"][0]
 REF_FILE = REF_GZ.replace(".gz", "")

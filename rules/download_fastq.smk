@@ -1,5 +1,11 @@
 from pathlib import Path
 
+# ------------------------------------------------------------------
+# Step 1 — Download FASTQ + Generate samples.tsv
+# Input: accessions.txt
+# Output: fastq/<ACC>_1.fastq.gz, fastq/<ACC>_2.fastq.gz, samples.tsv
+# Notes: comments (#) and empty lines in accessions.txt are ignored by the script
+# ------------------------------------------------------------------
 LOG_DIR = "results/logs"
 Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
 
