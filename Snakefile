@@ -36,149 +36,115 @@ FASTQ_R2 = expand(
 # ------------------------------------------------------------------
 REF_DIR = config["reference_dir"]
 REF_FILE = config["references"][0].replace(".gz", "")
-CANON_FILE = config.get("reference_canonical", [REF_FILE])[0]
+CANON_FILE = config["reference_canonical"][0]
 
 REF_FA = os.path.join(REF_DIR, REF_FILE)
 CANON_FA = os.path.join(REF_DIR, CANON_FILE)
 
 REF_FAIDX = [REF_FA + ".fai", CANON_FA + ".fai"]
-REF_DICT = [
-    os.path.join(REF_DIR, Path(REF_FILE).with_suffix("").with_suffix(".dict").name),
-    os.path.join(REF_DIR, Path(CANON_FILE).with_suffix("").with_suffix(".dict").name),
-]
+REF_DICT = [os.path.splitext(REF_FA)[0] + ".dict", os.path.splitext(CANON_FA)[0] + ".dict"]
 
+# BWA index for canonical reference
 BWA_INDEX = [CANON_FA + ext for ext in [".amb", ".ann", ".bwt", ".pac", ".sa"]]
 
 
 # ------------------------------------------------------------------
 # BAM outputs
 # ------------------------------------------------------------------
-BAM_DIR = config.get("bam_dir", "results/bam")
+BAM_DIR = config["bam_dir"]
 Path(BAM_DIR).mkdir(parents=True, exist_ok=True)
 
-SAMS = expand(
-    os.path.join(BAM_DIR, "{sample}.sam"),
-    sample=SAMPLES,
-)
-
-SORTED_BAMS = expand(
-    os.path.join(BAM_DIR, "{sample}.sorted.bam"),
-    sample=SAMPLES,
-)
+SAMS = expand(os.path.join(BAM_DIR, "{sample}.sam"), sample=SAMPLES)
+SORTED_BAMS = expand(os.path.join(BAM_DIR, "{sample}.sorted.bam"), sample=SAMPLES)
 
 
 # ------------------------------------------------------------------
 # Metrics outputs
 # ------------------------------------------------------------------
-METRICS_DIR = config.get("metrics_dir", "results/metrics")
+METRICS_DIR = config["metrics_dir"]
 Path(METRICS_DIR).mkdir(parents=True, exist_ok=True)
 
-METRICS = expand(
-    os.path.join(METRICS_DIR, "{sample}.alignment_metrics.txt"),
-    sample=SAMPLES,
-)
+METRICS = expand(os.path.join(METRICS_DIR, "{sample}.alignment_metrics.txt"), sample=SAMPLES)
 
 
 # ------------------------------------------------------------------
 # Dedup + index outputs
 # ------------------------------------------------------------------
-DEDUP_DIR = config.get("dedup_dir", "results/dedup")
+DEDUP_DIR = config["dedup_dir"]
 Path(DEDUP_DIR).mkdir(parents=True, exist_ok=True)
 
-DEDUP_BAMS = expand(
-    os.path.join(DEDUP_DIR, "{sample}.dedup.bam"),
-    sample=SAMPLES,
-)
-DEDUP_METRICS = expand(
-    os.path.join(DEDUP_DIR, "{sample}.metrics.txt"),
-    sample=SAMPLES,
-)
-DEDUP_BAI = expand(
-    os.path.join(DEDUP_DIR, "{sample}.dedup.bai"),
-    sample=SAMPLES,
-)
+DEDUP_BAMS = expand(os.path.join(DEDUP_DIR, "{sample}.dedup.bam"), sample=SAMPLES)
+DEDUP_METRICS = expand(os.path.join(DEDUP_DIR, "{sample}.metrics.txt"), sample=SAMPLES)
+DEDUP_BAI = expand(os.path.join(DEDUP_DIR, "{sample}.dedup.bai"), sample=SAMPLES)
 
 
 # ------------------------------------------------------------------
 # Step 4 — Call Variants (GATK4 HaplotypeCaller)
+# Input: dedup + indexed BAM, reference
+# Output: raw_variants.vcf (first-pass call)
 # ------------------------------------------------------------------
-VCF_DIR = config.get("vcf_dir", "results/vcfs")
+VCF_DIR = config["vcf_dir"]
 Path(VCF_DIR).mkdir(parents=True, exist_ok=True)
 
-RAW_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.raw_variants.vcf"),
-    sample=SAMPLES,
-)
+RAW_VCFS = expand(os.path.join(VCF_DIR, "{sample}.raw_variants.vcf"), sample=SAMPLES)
 RAW_VCF_IDXS = [v + ".idx" for v in RAW_VCFS]
 
 
 # ------------------------------------------------------------------
 # Step 5 — Split Variants (SNP vs INDEL)
+# Input: raw_variants.vcf
+# Output: raw_snps.vcf, raw_indels.vcf
 # ------------------------------------------------------------------
-RAW_SNP_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.raw_snps.vcf"),
-    sample=SAMPLES,
-)
+RAW_SNP_VCFS = expand(os.path.join(VCF_DIR, "{sample}.raw_snps.vcf"), sample=SAMPLES)
 RAW_SNP_VCF_IDXS = [v + ".idx" for v in RAW_SNP_VCFS]
 
-RAW_INDEL_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.raw_indels.vcf"),
-    sample=SAMPLES,
-)
+RAW_INDEL_VCFS = expand(os.path.join(VCF_DIR, "{sample}.raw_indels.vcf"), sample=SAMPLES)
 RAW_INDEL_VCF_IDXS = [v + ".idx" for v in RAW_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
 # Step 6 — Filter SNPs
+# Input: raw_snps.vcf
+# Output: filtered_snps.vcf (+ idx)
 # ------------------------------------------------------------------
-FILTERED_SNP_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.filtered_snps.vcf"),
-    sample=SAMPLES,
-)
+FILTERED_SNP_VCFS = expand(os.path.join(VCF_DIR, "{sample}.filtered_snps.vcf"), sample=SAMPLES)
 FILTERED_SNP_VCF_IDXS = [v + ".idx" for v in FILTERED_SNP_VCFS]
 
 
 # ------------------------------------------------------------------
 # Step 7 — Filter INDELs
+# Input: raw_indels.vcf
+# Output: filtered_indels.vcf (+ idx)
 # ------------------------------------------------------------------
-FILTERED_INDEL_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.filtered_indels.vcf"),
-    sample=SAMPLES,
-)
+FILTERED_INDEL_VCFS = expand(os.path.join(VCF_DIR, "{sample}.filtered_indels.vcf"), sample=SAMPLES)
 FILTERED_INDEL_VCF_IDXS = [v + ".idx" for v in FILTERED_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
 # Step 8 — Exclude Filtered Variants (PASS-only for BQSR)
+# Input: filtered_snps.vcf, filtered_indels.vcf
+# Output: bqsr_snps.vcf, bqsr_indels.vcf (+ idx)
 # ------------------------------------------------------------------
-BQSR_SNP_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.bqsr_snps.vcf"),
-    sample=SAMPLES,
-)
+BQSR_SNP_VCFS = expand(os.path.join(VCF_DIR, "{sample}.bqsr_snps.vcf"), sample=SAMPLES)
 BQSR_SNP_VCF_IDXS = [v + ".idx" for v in BQSR_SNP_VCFS]
 
-BQSR_INDEL_VCFS = expand(
-    os.path.join(VCF_DIR, "{sample}.bqsr_indels.vcf"),
-    sample=SAMPLES,
-)
+BQSR_INDEL_VCFS = expand(os.path.join(VCF_DIR, "{sample}.bqsr_indels.vcf"), sample=SAMPLES)
 BQSR_INDEL_VCF_IDXS = [v + ".idx" for v in BQSR_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
 # Step 9 — BQSR #1 (BaseRecalibrator)
 # Step 10 — Apply BQSR
+# Step 11 — BQSR #2 (optional; for AnalyzeCovariates reporting)
 # ------------------------------------------------------------------
-BQSR_DIR = config.get("bqsr_dir", "results/bqsr")
+BQSR_DIR = config["bqsr_dir"]
 Path(BQSR_DIR).mkdir(parents=True, exist_ok=True)
 
-BQSR_TABLES = expand(
-    os.path.join(BQSR_DIR, "{sample}.recal_data.table"),
-    sample=SAMPLES,
-)
-RECAL_BAMS = expand(
-    os.path.join(BQSR_DIR, "{sample}.recal_reads.bam"),
-    sample=SAMPLES,
-)
+BQSR_TABLES = expand(os.path.join(BQSR_DIR, "{sample}.recal_data.table"), sample=SAMPLES)
+RECAL_BAMS = expand(os.path.join(BQSR_DIR, "{sample}.recal_reads.bam"), sample=SAMPLES)
+POST_BQSR_TABLES = expand(os.path.join(BQSR_DIR, "{sample}.post_recal_data.table"), sample=SAMPLES)
+
+ENABLE_BQSR_SECOND_PASS = bool(config.get("bqsr_second_pass", False))
 
 
 # ------------------------------------------------------------------
@@ -229,4 +195,5 @@ rule all:
         BQSR_INDEL_VCFS,
         BQSR_INDEL_VCF_IDXS,
         BQSR_TABLES,
-        RECAL_BAMS
+        RECAL_BAMS,
+        (POST_BQSR_TABLES if ENABLE_BQSR_SECOND_PASS else [])

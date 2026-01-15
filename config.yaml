@@ -1,10 +1,8 @@
-# config.yaml
-
+# ------------------------------------------------------------------
 # Reference settings
-# Base URL for all references
+# ------------------------------------------------------------------
 reference_base_url: "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/"
 
-# Reference URLs (only one active by default)
 references:
   # - "Homo_sapiens.GRCh38.dna.chromosome.1.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.2.fa.gz"
@@ -20,7 +18,7 @@ references:
   # - "Homo_sapiens.GRCh38.dna.chromosome.12.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.14.fa.gz"
-   - "Homo_sapiens.GRCh38.dna.chromosome.15.fa.gz"   # active
+  - "Homo_sapiens.GRCh38.dna.chromosome.15.fa.gz" # active
   # - "Homo_sapiens.GRCh38.dna.chromosome.16.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.17.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.18.fa.gz"
@@ -30,10 +28,9 @@ references:
   # - "Homo_sapiens.GRCh38.dna.chromosome.22.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.X.fa.gz"
   # - "Homo_sapiens.GRCh38.dna.chromosome.Y.fa.gz"
-  # - "Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz"  # mitochondrial genome
-  # - "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"  # full genome
+  # - "Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz"
+  # - "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
 
-# Canonical reference names (commented out except active)
 reference_canonical:
   # - "chr_1.fa"
   # - "chr_2.fa"
@@ -49,7 +46,7 @@ reference_canonical:
   # - "chr_12.fa"
   # - "chr_13.fa"
   # - "chr_14.fa"
-   - "chr_15.fa"   # active
+  - "chr_15.fa" # active
   # - "chr_16.fa"
   # - "chr_17.fa"
   # - "chr_18.fa"
@@ -64,15 +61,27 @@ reference_canonical:
 
 reference_dir: "reference"
 
+# ------------------------------------------------------------------
+# I/O directories
+# ------------------------------------------------------------------
+fastq_dir: "fastq"
 bam_dir: "results/bam"
 dedup_dir: "results/dedup"
 metrics_dir: "results/metrics"
 vcf_dir: "results/vcfs"
+bqsr_dir: "results/bqsr"
 
+# ------------------------------------------------------------------
+# Inputs
+# ------------------------------------------------------------------
+accessions_file: "accessions.txt"
+samples_tsv: "samples.tsv"
+
+# ------------------------------------------------------------------
 # Pipeline settings
+# ------------------------------------------------------------------
 threads: 6
 platform: "ILLUMINA"
 
-samples_tsv: "samples.tsv"
-fastq_dir: "fastq"
-accessions_file: "accessions.txt"
+# Optional: include BQSR 2nd pass in rule all (for reporting)
+bqsr_second_pass: true

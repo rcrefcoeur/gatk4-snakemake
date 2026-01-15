@@ -11,12 +11,17 @@ from pathlib import Path
 # Tool: GATK4 ApplyBQSR
 # Input: recal_data.table, dedup + indexed BAM, reference
 # Output: recal_reads.bam (analysis-ready BAM)
+#
+# Step 11 — Base Quality Score Recalibration (BQSR) #2 (optional, for reporting)
+# Tool: GATK4 BaseRecalibrator
+# Input: recal_reads.bam, bqsr_snps.vcf, bqsr_indels.vcf, reference
+# Output: post_recal_data.table
 # ------------------------------------------------------------------
-BQSR_DIR = config.get("bqsr_dir", "results/bqsr")
+BQSR_DIR = config["bqsr_dir"]
 Path(BQSR_DIR).mkdir(parents=True, exist_ok=True)
 
-DEDUP_DIR = config.get("dedup_dir", "results/dedup")
-VCF_DIR = config.get("vcf_dir", "results/vcfs")
+DEDUP_DIR = config["dedup_dir"]
+VCF_DIR = config["vcf_dir"]
 
 
 rule base_recalibrator:
@@ -70,4 +75,32 @@ rule apply_bqsr:
           -I {input.bam} \
           --bqsr-recal-file {input.table} \
           -O {output.bam}
+        """
+
+
+rule base_recalibrator_post:
+    input:
+        bam=os.path.join(BQSR_DIR, "{sample}.recal_reads.bam"),
+        snps=os.path.join(VCF_DIR, "{sample}.bqsr_snps.vcf"),
+        snps_idx=os.path.join(VCF_DIR, "{sample}.bqsr_snps.vcf.idx"),
+        indels=os.path.join(VCF_DIR, "{sample}.bqsr_indels.vcf"),
+        indels_idx=os.path.join(VCF_DIR, "{sample}.bqsr_indels.vcf.idx"),
+        ref=CANON_FA,
+        ref_fai=CANON_FA + ".fai",
+        ref_dict=os.path.splitext(CANON_FA)[0] + ".dict",
+    output:
+        table=os.path.join(BQSR_DIR, "{sample}.post_recal_data.table"),
+    threads: 4
+    conda:
+        "../envs/gatk.yml"
+    shell:
+        r"""
+        set -euo pipefail
+
+        gatk BaseRecalibrator \
+          -R {input.ref} \
+          -I {input.bam} \
+          --known-sites {input.snps} \
+          --known-sites {input.indels} \
+          -O {output.table}
         """
