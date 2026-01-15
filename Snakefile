@@ -47,7 +47,6 @@ REF_DICT = [
     os.path.join(REF_DIR, Path(CANON_FILE).with_suffix("").with_suffix(".dict").name),
 ]
 
-# BWA index files for canonical FASTA used by alignment
 BWA_INDEX = [CANON_FA + ext for ext in [".amb", ".ann", ".bwt", ".pac", ".sa"]]
 
 
@@ -101,7 +100,7 @@ DEDUP_BAI = expand(
 
 
 # ------------------------------------------------------------------
-# Call Variants
+# Step 4 — Call Variants (GATK4 HaplotypeCaller)
 # ------------------------------------------------------------------
 VCF_DIR = config.get("vcf_dir", "results/vcfs")
 Path(VCF_DIR).mkdir(parents=True, exist_ok=True)
@@ -111,6 +110,22 @@ RAW_VCFS = expand(
     sample=SAMPLES,
 )
 RAW_VCF_IDXS = [v + ".idx" for v in RAW_VCFS]
+
+
+# ------------------------------------------------------------------
+# Step 5 — Split Variants (SNP vs INDEL)
+# ------------------------------------------------------------------
+RAW_SNP_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.raw_snps.vcf"),
+    sample=SAMPLES,
+)
+RAW_SNP_VCF_IDXS = [v + ".idx" for v in RAW_SNP_VCFS]
+
+RAW_INDEL_VCFS = expand(
+    os.path.join(VCF_DIR, "{sample}.raw_indels.vcf"),
+    sample=SAMPLES,
+)
+RAW_INDEL_VCF_IDXS = [v + ".idx" for v in RAW_INDEL_VCFS]
 
 
 # ------------------------------------------------------------------
@@ -124,6 +139,7 @@ include: "rules/metrics.smk"
 include: "rules/mark_duplicates.smk"
 include: "rules/index_bam.smk"
 include: "rules/haplotypecaller.smk"
+include: "rules/select_variants.smk"
 
 
 rule all:
@@ -142,4 +158,8 @@ rule all:
         DEDUP_METRICS,
         DEDUP_BAI,
         RAW_VCFS,
-        RAW_VCF_IDXS
+        RAW_VCF_IDXS,
+        RAW_SNP_VCFS,
+        RAW_SNP_VCF_IDXS,
+        RAW_INDEL_VCFS,
+        RAW_INDEL_VCF_IDXS
