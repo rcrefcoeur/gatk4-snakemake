@@ -10,7 +10,7 @@ rule build_bam_index:
     input:
         bam = os.path.join(DEDUP_DIR, "{sample}.dedup.bam")
     output:
-        bai = temp(os.path.join(DEDUP_DIR, "{sample}.dedup.bai"))
+        bai = os.path.join(DEDUP_DIR, "{sample}.dedup.bai")
     threads: 1
     conda: PICARD_ENV
     shell:

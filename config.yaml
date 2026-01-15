@@ -66,6 +66,8 @@ reference_dir: "reference"
 
 bam_dir: "results/bam"
 dedup_dir: "results/dedup"
+metrics_dir: "results/metrics"
+gatk3_tarball: "resources/gatk/GenomeAnalysisTK-3.8-0.tar.bz2"
 
 # Pipeline settings
 threads: 6

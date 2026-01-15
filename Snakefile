@@ -1,5 +1,3 @@
-# Snakefile
-
 import os
 import pandas as pd
 from pathlib import Path
@@ -40,22 +38,10 @@ SAMPLES = samples_df["sample"].tolist()
 # ------------------------------------------------------------------
 
 REF_DIR = config["reference_dir"]
-
-REF_FILE = config["references"][0].replace(".gz", "")
-CANON_FILE = config.get("reference_canonical", [REF_FILE])[0]
-
-REF_FA = os.path.join(REF_DIR, REF_FILE)
-CANON_FA = os.path.join(REF_DIR, CANON_FILE)
-
-REF_FAIDX = [
-    REF_FA + ".fai",
-    CANON_FA + ".fai",
-]
-
-REF_DICT = [
-    REF_FA.replace(".fa", ".dict"),
-    CANON_FA.replace(".fa", ".dict"),
-]
+REF_FA = os.path.join(REF_DIR, config["references"][0].replace(".gz", ""))
+CANON_FA = os.path.join(REF_DIR, config["reference_canonical"][0])
+REF_FAIDX = CANON_FA + ".fai"
+REF_DICT = CANON_FA.replace(".fa", ".dict")
 
 # ------------------------------------------------------------------
 # BAM outputs (from align.smk)
@@ -78,37 +64,52 @@ SORTED_BAMS = expand(
 )
 
 # ------------------------------------------------------------------
-# Sorted BAMS (from metrics.smk)
-# -----------------------------------------------------------------
+# Metrics (from metrics.smk)
+# ------------------------------------------------------------------
 
 METRICS = expand(
-    "results/metrics/{sample}.alignment_metrics.txt",
+    "{metrics_dir}/{sample}.alignment_metrics.txt",
+    metrics_dir=config["metrics_dir"],
     sample=SAMPLES
 )
-    
+
 # ------------------------------------------------------------------
-# Deduplicated BAMs and metrics
+# Deduplicated BAMs (from mark_duplicates.smk)
 # ------------------------------------------------------------------
+
 DEDUP_DIR = config.get("dedup_dir", "results/dedup")
+
 DEDUP_BAMS = expand(
-    os.path.join(DEDUP_DIR, "{sample}.dedup.bam"),
+    "{dedup_dir}/{sample}.dedup.bam",
+    dedup_dir=DEDUP_DIR,
     sample=SAMPLES
 )
+
 DEDUP_METRICS = expand(
-    os.path.join(DEDUP_DIR, "{sample}.metrics.txt"),
+    "{dedup_dir}/{sample}.metrics.txt",
+    dedup_dir=DEDUP_DIR,
+    sample=SAMPLES
+)
+
+# NOTE: small fix approved — do NOT mark these as temp
+DEDUP_BAI = expand(
+    "results/dedup/{sample}.dedup.bai", sample=SAMPLES
+)
+
+# ------------------------------------------------------------------
+# Realignment targets (Step 6)
+# ----------------------------------------------------------------
+
+REALIGN_DIR = config.get("realign_dir", "results/realign")
+
+REALIGN_TARGETS = expand(
+    "{realign_dir}/{sample}.realignment_targets.list",
+    realign_dir=REALIGN_DIR,
     sample=SAMPLES
 )
 
 # ------------------------------------------------------------------
-# Build BAM Index
-# ------------------------------------------------------------------
-
-DEDUP_BAI = temp(
-    expand("results/dedup/{sample}.dedup.bai", sample=SAMPLES)
-)
-
-# ------------------------------------------------------------------
-# Include rules
+# Include modular rules
 # ------------------------------------------------------------------
 
 include: "rules/download_fastq.smk"
@@ -118,7 +119,7 @@ include: "rules/sort_bam.smk"
 include: "rules/metrics.smk"
 include: "rules/mark_duplicates.smk"
 include: "rules/index_bam.smk"
-
+include: "rules/realigner_target_creator.smk"
 
 # ------------------------------------------------------------------
 # Rule all
@@ -137,4 +138,5 @@ rule all:
         METRICS,
         DEDUP_BAMS,
         DEDUP_METRICS,
-        DEDUP_BAI
+        DEDUP_BAI,
+        REALIGN_TARGETS

@@ -22,10 +22,11 @@ rule mark_duplicates:
         r"""
         set -euo pipefail
 
+        # Why: avoid double indexing (index is produced by rules/index_bam.smk)
         picard MarkDuplicates \
             INPUT={input.bam} \
             OUTPUT={output.bam} \
             METRICS_FILE={output.metrics} \
-            CREATE_INDEX=true \
+            CREATE_INDEX=false \
             VALIDATION_STRINGENCY=STRICT
         """
