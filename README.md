@@ -1,8 +1,8 @@
 # GATK4 Snakemake Pipeline (gatk4-mainline)
 
-A reproducible Snakemake workflow implementing a **GATK4-based pipeline up through post-BQSR variant calling + SNP/INDEL split**:
+A reproducible Snakemake workflow implementing a **GATK4-based pipeline through final SNP annotation + reporting**:
 
-**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller → hard-filter → PASS-only known-sites → BQSR → ApplyBQSR → (optional BQSR 2nd pass + plots) → HaplotypeCaller (recal) → split SNP/INDEL (recal)**
+**download → reference prep → FASTQ retrieval → alignment → sort → mark duplicates → BAM index → HaplotypeCaller → hard-filter → PASS-only known-sites → BQSR → ApplyBQSR → (optional BQSR 2nd pass + plots) → HaplotypeCaller (recal) → split SNP/INDEL (recal) → final hard-filter → SnpEff annotation → per-sample + combined CSV report**
 
 Minimal required inputs on a clean clone:
 
@@ -67,24 +67,49 @@ For each accession / sample:
    - Output: `results/bqsr/<sample>.recal_reads.bam` (**analysis-ready BAM**)
 
 11. **Step 11 — BQSR #2 (optional)**
-- `BaseRecalibrator` on `recal_reads.bam`
-- Output: `results/bqsr/<sample>.post_recal_data.table`
+   - `BaseRecalibrator` on `recal_reads.bam`
+   - Output: `results/bqsr/<sample>.post_recal_data.table`
 
-12. Step 12 — AnalyzeCovariates (optional; requires Step 11)**
-- `AnalyzeCovariates`
-- Outputs:
-  - `results/bqsr/<sample>.recalibration_plots.pdf`
-  - `results/bqsr/<sample>.recalibration_plots.csv`
+12. **Step 12 — AnalyzeCovariates (optional; requires Step 11)**
+   - `AnalyzeCovariates`
+   - Outputs:
+     - `results/bqsr/<sample>.recalibration_plots.pdf`
+     - `results/bqsr/<sample>.recalibration_plots.csv`
 
 13. **Step 13 — Call Variants again (post-BQSR)**
-- GATK4 `HaplotypeCaller` on `recal_reads.bam`
-- Output: `results/vcfs/<sample>.raw_variants_recal.vcf`
+   - GATK4 `HaplotypeCaller` on `recal_reads.bam`
+   - Output: `results/vcfs/<sample>.raw_variants_recal.vcf`
 
 14. **Step 14 — Split Variants again (post-BQSR SNP vs INDEL)**
-- `SelectVariants` on `raw_variants_recal.vcf`
-- Outputs:
-  - `results/vcfs/<sample>.raw_snps_recal.vcf`
-  - `results/vcfs/<sample>.raw_indels_recal.vcf`
+   - `SelectVariants` on `raw_variants_recal.vcf`
+   - Outputs:
+     - `results/vcfs/<sample>.raw_snps_recal.vcf`
+     - `results/vcfs/<sample>.raw_indels_recal.vcf`
+
+15. **Step 15 — Final Filter SNPs (post-BQSR)**
+   - `VariantFiltration` on `raw_snps_recal.vcf`
+   - Output:
+     - `results/vcfs/<sample>.filtered_snps_final.vcf`
+     - `results/vcfs/<sample>.filtered_snps_final.vcf.idx`
+
+16. **Step 16 — Final Filter INDELs (post-BQSR)**
+   - `VariantFiltration` on `raw_indels_recal.vcf`
+   - Output:
+     - `results/vcfs/<sample>.filtered_indels_final.vcf`
+     - `results/vcfs/<sample>.filtered_indels_final.vcf.idx`
+
+17. **Step 17 — Annotate Final SNPs (SnpEff)**
+   - `snpEff` on `filtered_snps_final.vcf`
+   - Outputs:
+     - `results/vcfs/<sample>.filtered_snps_final.ann.vcf`
+     - `results/vcfs/<sample>.snpeff_summary.html`
+     - `results/vcfs/<sample>.snpEff_genes.txt` (gene list extracted from ANN field)
+
+18. **Step 18 — Compile Statistics (CSV report)**
+   - `bin/parse_metrics.sh` generates a per-sample report:
+     - `results/reports/<sample>.report.csv`
+   - A combined report is then generated:
+     - `results/reports/report.csv`
 
 ---
 
@@ -107,41 +132,48 @@ gatk4-snakemake/
 ├── config.yaml  
 ├── accessions.txt  
 ├── scripts/  
-│ └── download_fastq.sh  
+│   └── download_fastq.sh  
 ├── envs/  
-│ ├── bwa.yml  
-│ ├── picard.yml  
-│ ├── reference.yml  
-│ ├── sra-tools.yml  
-│ └── gatk.yml  
+│   ├── bwa.yml  
+│   ├── picard.yml  
+│   ├── reference.yml  
+│   ├── sra-tools.yml  
+│   ├── gatk.yml  
+│   └── snpeff.yml  
 ├── rules/  
-│ ├── download_fastq.smk  
-│ ├── reference.smk  
-│ ├── align.smk  
-│ ├── sort_bam.smk  
-│ ├── metrics.smk  
-│ ├── mark_duplicates.smk  
-│ ├── index_bam.smk  
-│ ├── haplotypecaller.smk  
-│ ├── select_variants.smk  
-│ ├── filter_snps.smk  
-│ ├── filter_indels.smk  
-│ ├── exclude_filtered_variants.smk  
-│ ├── bqsr.smk  
-│ ├── analyze_covariates.smk  
-│ ├── haplotypecaller_recal.smk  
-│ └── select_variants_recal.smk  
-├── reference/ # generated  
-├── fastq/ # generated  
-├── results/ # generated  
-│ ├── bam/  
-│ ├── metrics/  
-│ ├── dedup/  
-│ ├── vcfs/  
-│ ├── bqsr/  
-│ └── logs/  
-└── .snakemake/ # generated (conda env cache, metadata, logs)  
-
+│   ├── download_fastq.smk  
+│   ├── reference.smk  
+│   ├── align.smk  
+│   ├── sort_bam.smk  
+│   ├── metrics.smk  
+│   ├── mark_duplicates.smk  
+│   ├── index_bam.smk  
+│   ├── haplotypecaller.smk  
+│   ├── select_variants.smk  
+│   ├── filter_snps.smk  
+│   ├── filter_indels.smk  
+│   ├── exclude_filtered_variants.smk  
+│   ├── bqsr.smk  
+│   ├── analyze_covariates.smk  
+│   ├── haplotypecaller_recal.smk  
+│   ├── select_variants_recal.smk  
+│   ├── filter_snps_final.smk  
+│   ├── filter_indels_final.smk  
+│   ├── snpeff_annotate.smk  
+│   └── compile_report.smk  
+├── bin/  
+│   └── parse_metrics.sh  
+├── reference/           # generated  
+├── fastq/               # generated  
+├── results/             # generated  
+│   ├── bam/  
+│   ├── metrics/  
+│   ├── dedup/  
+│   ├── vcfs/  
+│   ├── bqsr/  
+│   ├── reports/  
+│   └── logs/  
+└── .snakemake/          # generated (conda env cache, metadata, logs)  
 ---
 
 ## 🚀 Installing on a Clean WSL2 + Ubuntu System
@@ -209,12 +241,27 @@ Common keys in config.yaml:
 ### Dry run (validate DAG)  
 snakemake -n -p --use-conda --cores 1 results/dedup/SRR2584863.dedup.bai
 
-### Run post-BQSR SNP/INDEL split (Step 14 targets; will build prerequisites) 
-snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going \  
-&nbsp;&nbsp;&nbsp;&nbsp;results/vcfs/SRR2584863.raw_snps_recal.vcf
+### Run final outputs directly (useful targets)
+# Final annotated SNP VCF
+snakemake -p --use-conda --cores 1 results/vcfs/SRR2584863.filtered_snps_final.ann.vcf
+
+# Per-sample report
+snakemake -p --use-conda --cores 1 results/reports/SRR2584863.report.csv
+
+# Combined report
+snakemake -p --use-conda --cores 1 results/reports/report.csv
 
 ### Run everything in rule all
 snakemake -p --use-conda --cores 4 --rerun-incomplete --keep-going
+
+---
+
+## 🧠 Notes / Troubleshooting
+
+- If Snakemake says Nothing to be done, all outputs requested by your targets (or rule all) already exist and are up to date.
+- snpEff downloads large databases on first run. If you hit Java memory errors, increase heap with:
+   - java -Xmx4g -jar ... style, or configure your snpEff call to use more memory.
+- parse_metrics.sh is called via bash bin/parse_metrics.sh ... so it does not need executable permissions.
 
 ---
 

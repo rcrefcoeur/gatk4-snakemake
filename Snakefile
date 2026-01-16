@@ -175,6 +175,56 @@ RAW_INDELS_RECAL_IDXS = [v + ".idx" for v in RAW_INDELS_RECAL]
 
 
 # ------------------------------------------------------------------
+# Step 15 — Filter SNPs (FINAL; post-BQSR)
+# ------------------------------------------------------------------
+FILTERED_SNPS_FINAL = expand(
+    os.path.join(VCF_DIR, "{sample}.filtered_snps_final.vcf"),
+    sample=SAMPLES,
+)
+FILTERED_SNPS_FINAL_IDXS = [v + ".idx" for v in FILTERED_SNPS_FINAL]
+
+
+# ------------------------------------------------------------------
+# Step 16 — Filter Indels (FINAL; post-BQSR)
+# ------------------------------------------------------------------
+FILTERED_INDELS_FINAL = expand(
+    os.path.join(VCF_DIR, "{sample}.filtered_indels_final.vcf"),
+    sample=SAMPLES,
+)
+FILTERED_INDELS_FINAL_IDXS = [v + ".idx" for v in FILTERED_INDELS_FINAL]
+
+
+# ------------------------------------------------------------------
+# Step 17 — Annotate SNPs and Predict Effects (SnpEff)
+# ------------------------------------------------------------------
+ANNOTATED_SNPS_FINAL = expand(
+    os.path.join(VCF_DIR, "{sample}.filtered_snps_final.ann.vcf"),
+    sample=SAMPLES,
+)
+SNPEFF_SUMMARY_HTML = expand(
+    os.path.join(VCF_DIR, "{sample}.snpeff_summary.html"),
+    sample=SAMPLES,
+)
+SNPEFF_GENES_TXT = expand(
+    os.path.join(VCF_DIR, "{sample}.snpEff_genes.txt"),
+    sample=SAMPLES,
+)
+
+
+# ------------------------------------------------------------------
+# Step 18 — Compile Statistics (CSV report)
+# ------------------------------------------------------------------
+REPORT_DIR = config.get("report_dir", "results/reports")
+Path(REPORT_DIR).mkdir(parents=True, exist_ok=True)
+
+SAMPLE_REPORTS = expand(
+    os.path.join(REPORT_DIR, "{sample}.report.csv"),
+    sample=SAMPLES,
+)
+COMBINED_REPORT = os.path.join(REPORT_DIR, "report.csv")
+
+
+# ------------------------------------------------------------------
 # Include rules
 # ------------------------------------------------------------------
 include: "rules/download_fastq.smk"
@@ -193,6 +243,10 @@ include: "rules/bqsr.smk"
 include: "rules/analyze_covariates.smk"
 include: "rules/haplotypecaller_recal.smk"
 include: "rules/select_variants_recal.smk"
+include: "rules/filter_snps_final.smk"
+include: "rules/filter_indels_final.smk"
+include: "rules/snpeff_annotate.smk"
+include: "rules/compile_report.smk"
 
 
 rule all:
@@ -237,3 +291,12 @@ rule all:
         RAW_SNPS_RECAL_IDXS,
         RAW_INDELS_RECAL,
         RAW_INDELS_RECAL_IDXS,
+        FILTERED_SNPS_FINAL,
+        FILTERED_SNPS_FINAL_IDXS,
+        FILTERED_INDELS_FINAL,
+        FILTERED_INDELS_FINAL_IDXS,
+        ANNOTATED_SNPS_FINAL,
+        SNPEFF_SUMMARY_HTML,
+        SNPEFF_GENES_TXT,
+        SAMPLE_REPORTS,
+        COMBINED_REPORT

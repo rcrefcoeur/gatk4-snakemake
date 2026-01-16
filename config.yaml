@@ -70,6 +70,7 @@ dedup_dir: "results/dedup"
 metrics_dir: "results/metrics"
 vcf_dir: "results/vcfs"
 bqsr_dir: "results/bqsr"
+report_dir: "results/reports"
 
 # ------------------------------------------------------------------
 # Inputs
@@ -84,4 +85,15 @@ threads: 6
 platform: "ILLUMINA"
 
 # Optional: include BQSR 2nd pass in rule all (for reporting)
-bqsr_second_pass: true
+bqsr_second_pass: false
+
+# ------------------------------------------------------------------
+# Annotation (snpEff)
+# ------------------------------------------------------------------
+snpeff_db: "GRCh38.105"
+snpeff_data_dir: "resources/snpeff"
+
+# ------------------------------------------------------------------
+# Report
+# ------------------------------------------------------------------
+parse_metrics_script: "bin/parse_metrics.sh"

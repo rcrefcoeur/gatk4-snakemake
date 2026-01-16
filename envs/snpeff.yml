@@ -1,9 +1,7 @@
 name: snpeff-env
 channels:
-  - bioconda
   - conda-forge
-  - defaults
+  - bioconda
 dependencies:
-  - python=3.11
   - snpeff=5.1.0
-  - default-jre=17
+  - openjdk=17
