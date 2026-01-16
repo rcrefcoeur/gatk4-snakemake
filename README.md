@@ -242,13 +242,13 @@ Common keys in config.yaml:
 snakemake -n -p --use-conda --cores 1 results/dedup/SRR2584863.dedup.bai
 
 ### Run final outputs directly (useful targets)
-# Final annotated SNP VCF
+#### Final annotated SNP VCF
 snakemake -p --use-conda --cores 1 results/vcfs/SRR2584863.filtered_snps_final.ann.vcf
 
-# Per-sample report
+#### Per-sample report
 snakemake -p --use-conda --cores 1 results/reports/SRR2584863.report.csv
 
-# Combined report
+#### Combined report
 snakemake -p --use-conda --cores 1 results/reports/report.csv
 
 ### Run everything in rule all
